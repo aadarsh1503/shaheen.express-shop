@@ -47,14 +47,19 @@ const ShopFooter = () => {
   return (
     <footer className="w-full">
       {/* Main Footer Section */}
-      <div className="bg-[#01A89C] text-white font-thin">
+      <div className="bg-[#EC2027] text-white font-thin">
         <div className="container mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
           {/* Column 1: Logo & Tagline */}
           <div className="space-y-4">
-            <ZoomLogoWhite />
-            <p className="text-sm tracking-wider">Click it or miss it</p>
-          </div>
+  <img 
+    src="https://shaheen-express-shop.vercel.app/assets/i1-Jri-U_l6.png" 
+    alt="Zoom Logo White" 
+    className="w-32 h-auto" 
+  />
+  <p className="text-sm tracking-wider">Click it or miss it</p>
+</div>
+
 
           {/* Column 2: Useful Links */}
           <div className="space-y-4">
@@ -94,12 +99,12 @@ const ShopFooter = () => {
       </div>
 
       {/* Sub-Footer Section */}
-      <div className="bg-[#008479] text-white font-thin">
+      <div className="bg-[#ff2323] text-white font-thin">
         <div className="container mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-4">
           
           {/* Copyright */}
           <p className="text-xs tracking-wider">
-            2025 zoom.bh - Designed with keyboard by CG
+            2025 Shaheen Express
           </p>
           
           {/* Payment Icons */}

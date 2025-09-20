@@ -46,7 +46,7 @@ const BrandFilter = ({ title, items, initialVisibleCount = 10 }) => {
                     type="checkbox"
                     checked={checkedItems[item] || false}
                     onChange={() => handleCheckboxChange(item)}
-                    className="form-checkbox h-5 w-5 rounded-sm bg-white border-none text-[#01A89C] focus:ring-0 focus:ring-offset-0"
+                    className="form-checkbox h-5 w-5 rounded-sm bg-white border-none text-[#EC2027] focus:ring-0 focus:ring-offset-0"
                   />
                   <span className="ml-4 text-white font-light text-sm tracking-wider group-hover:text-gray-200 whitespace-nowrap">
                     {item}

@@ -32,7 +32,7 @@ const CategoryLink = ({ name }) => (
 const ShopHero = () => {
   return (
     // Main section with the specified teal background color
-    <section className="bg-[#01A89C] w-full py-20 px-4">
+    <section className="bg-[#EC2027] w-full py-20 px-4">
       <div className="container mx-auto flex flex-col items-center text-center">
         
         {/* The main "Shop" title */}

@@ -37,22 +37,38 @@ const MegaMenu = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className={`fixed inset-0 bg-[#01A89C] text-white z-50 flex
+      className={`fixed inset-0 bg-[#EC2027] text-white z-50 flex
                  transition-transform duration-500 ease-in-out
                  ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       {/* Thin Icon Sidebar */}
       <div className="w-20 bg-black bg-opacity-10 flex-shrink-0 flex flex-col items-center py-8 space-y-10">
-        <button onClick={onClose} className="hover:opacity-75 transition-opacity">
-          <X size={28} />
-        </button>
-        <button className="hover:opacity-75 transition-opacity">
-          <User size={28} />
-        </button>
-        <button className="hover:opacity-75 transition-opacity">
-          <Heart size={28} />
-        </button>
-      </div>
+  {/* Close Button */}
+  <a
+    href="#"
+    onClick={onClose}
+    className="hover:opacity-75 transition-opacity"
+  >
+    <X size={28} />
+  </a>
+
+  {/* User */}
+  <a
+    href="/login-shop"
+    className="hover:opacity-75 transition-opacity"
+  >
+    <User size={28} />
+  </a>
+
+  {/* Heart */}
+  <a
+    href="/wishlist"
+    className="hover:opacity-75 transition-opacity"
+  >
+    <Heart size={28} />
+  </a>
+</div>
+
 
       {/* --- CHANGE 2: Add onMouseLeave to this container --- */}
       <div 
@@ -63,7 +79,7 @@ const MegaMenu = ({ isOpen, onClose }) => {
         <div className="w-64 flex-shrink-0 p-12 font-thin tracking-widest">
           <ul className="space-y-6 text-lg">
             {/* onMouseEnter on these now just clears the active menu */}
-            <li onMouseEnter={() => setActiveMenu(null)}><a href="#" className="hover:text-gray-200">HOME</a></li>
+            <li onMouseEnter={() => setActiveMenu(null)}><a href="/shop" className="hover:text-gray-200">HOME</a></li>
             <li onMouseEnter={() => setActiveMenu(null)}><a href="#" className="hover:text-gray-200 pb-1 border-b-2 border-white">SHOP</a></li>
             <li onMouseEnter={() => setActiveMenu(null)}><a href="#" className="hover:text-gray-200">OFFERS</a></li>
             
@@ -71,7 +87,7 @@ const MegaMenu = ({ isOpen, onClose }) => {
             <li onMouseEnter={() => setActiveMenu('CATEGORIES')}>
               <a href="#" className={`flex justify-between items-center hover:text-gray-200 ${activeMenu === 'CATEGORIES' ? 'pb-1 border-b-2 border-white' : ''}`}>
                 <span>CATEGORIES</span>
-                <ChevronRight size={24} className="bg-white/20 rounded-full p-1"/>
+                <ChevronRight size={18} className=""/>
               </a>
             </li>
             <li onMouseEnter={() => setActiveMenu('BRANDS')}>
