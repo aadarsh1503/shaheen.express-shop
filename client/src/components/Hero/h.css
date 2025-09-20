@@ -1,0 +1,57 @@
+/*
+  ==============================================================
+  Futuristic Styles for the Hero Component
+  ==============================================================
+*/
+
+/* 
+  Define our color theme using CSS variables.
+  This makes it easy to change the entire site's futuristic theme from one place.
+  NOTE: This assumes your `dgreen` is something like #023020. Change it to your actual color code.
+*/
+:root {
+    --color-dgreen: #023020;
+    --color-accent-cyan: #22d3ee; /* The bright cyan color for glows and highlights */
+    --color-accent-cyan-glow: rgba(34, 211, 238, 0.4);
+    --color-white-glow: rgba(255, 255, 255, 0.3);
+  }
+  
+  /* 
+    Class for the main text's futuristic glow effect.
+    This replaces the text-shadow plugin from tailwind.config.js.
+  */
+  .text-glow {
+    text-shadow: 0 0 8px var(--color-white-glow), 0 0 20px var(--color-accent-cyan-glow);
+  }
+  
+  /* 
+    Class for the futuristic grid background.
+    This makes the JSX in the component much cleaner.
+  */
+  .futuristic-grid-background {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  
+  /* 
+    A custom, more subtle "breathing" or "pulsating" animation for the background glows.
+    This feels more organic and high-tech than a standard pulse.
+  */
+  @keyframes subtle-glow-pulse {
+    0%, 100% {
+      opacity: 0.2;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.35;
+      transform: scale(1.05);
+    }
+  }
+  
+  /*
+    Class to apply our custom animation.
+  */
+  .glow-pulse {
+    animation: subtle-glow-pulse 6s infinite ease-in-out;
+  }

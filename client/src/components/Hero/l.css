@@ -1,0 +1,80 @@
+/* l.css */
+
+/* --- Keep your existing .running-glint-effect styles --- */
+.running-glint-effect {
+    animation: glint 5s infinite linear;
+  }
+  
+  @keyframes glint {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+  
+  /* --- ADD THE NEW STYLES FOR THE ANIMATED BLUR EFFECT --- */
+  
+  /* 
+    This class sets up the container for our effect. 
+    It ensures the pseudo-elements are positioned relative to it and are clipped.
+  */
+  .animated-blur-bg {
+    position: relative; /* Essential for positioning the pseudo-elements */
+    overflow: hidden;   /* Essential for containing the blurred blobs */
+  }
+  
+  /* 
+    Create the pseudo-elements that will act as our blurred blobs.
+    We style them both here and then position/animate them individually.
+  */
+  .animated-blur-bg::before,
+  .animated-blur-bg::after {
+    content: '';
+    position: absolute;
+    width: 200px; /* Size of the blob */
+    height: 200px;
+    border-radius: 50%; /* Make it a circle */
+    filter: blur(60px); /* The "sexy" blur effect */
+    z-index: 0; /* Ensure it's behind the card content */
+    opacity: 0.5; /* Make it subtle */
+  }
+  
+  /* Style and position the FIRST blob */
+  .animated-blur-bg::before {
+    background: rgba(236, 32, 39, 0.3); /* A semi-transparent version of your brand-red */
+    top: -50px;
+    left: -50px;
+    animation: move-blob-1 15s infinite alternate; /* The animation */
+  }
+  
+  /* Style and position the SECOND blob */
+  .animated-blur-bg::after {
+    background: rgba(76, 0, 255, 0.1); /* A complementary purple/blue for a futuristic feel */
+    bottom: -50px;
+    right: -50px;
+    animation: move-blob-2 20s infinite alternate; /* A different, longer animation */
+  }
+  
+  /* 
+    Define the keyframe animations for the blobs.
+    Using different paths and durations makes the effect feel more organic.
+  */
+  @keyframes move-blob-1 {
+    0% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(100px, 80px);
+    }
+  }
+  
+  @keyframes move-blob-2 {
+    0% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(-120px, -90px);
+    }
+  }

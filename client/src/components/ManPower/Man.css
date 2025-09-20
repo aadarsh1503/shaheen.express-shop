@@ -1,0 +1,5 @@
+/* Add this CSS to your styles */
+.leaflet-container {
+    cursor: default !important; /* Set default cursor */
+  }
+  
