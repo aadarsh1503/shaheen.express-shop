@@ -2,21 +2,20 @@ import React from 'react';
 
 // --- CONSOLIDATED DATA ---
 const allCategories = [
-  { name: 'Uncategorized' },
-  { name: '35mm film' },
-  { name: 'Audio' },
-  { name: 'Camera Straps' },
-  { name: 'Cameras' },
-  { name: 'Fog Machine' },
-  { name: 'Gimbals' },
+  { name: 'Boxes' },
+  { name: 'Bubble Wrap' },
+  { name: 'Tape & Dispensers' },
+  { name: 'Labels' },
+  { name: 'Scales' },
+  { name: 'Stretch Film' },
+  { name: 'Cargo Straps' },
+  { name: 'Hand Trucks' },
+  { name: 'Packaging' },
+  { name: 'Logistics' },
+  { name: 'Supplies' },
   { name: 'Accessories' },
-  { name: 'LED Lights / Flash lights' },
-  { name: 'Lenses & Accessories' },
-  { name: 'Microphone Stand' },
-  { name: 'Teleprompter' },
-  { name: 'Tripods & Heads' },
-  { name: 'Umbrella Light' },
 ];
+
 
 // Reusable component for category links (only text now)
 const CategoryLink = ({ name }) => (

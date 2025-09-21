@@ -28,6 +28,7 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/LoginPage/RegisterPage';
 import CartPage from './pages/CartPage/CartPage';
 import CheckoutPage from './pages/CartPage/CheckoutPage';
+import MyAccountPage from './pages/MyAccountPage/MyAccountPage';
 
 
 function ScrollToTop() {
@@ -50,8 +51,9 @@ function LayoutWrapper({ children, cartItems, onRemoveItem, subtotal, currency }
   const isRegisterPage = location.pathname.startsWith("/register-shop");
   const isCartPage = location.pathname === "/cart";
   const isCheckoutPage = location.pathname === "/checkout";
+  const isMyAccount = location.pathname === "/my-account";
 
-  const useShopLayout = isShopPage || isLoginPage || isRegisterPage || isCartPage || isCheckoutPage;
+  const useShopLayout = isShopPage || isLoginPage || isRegisterPage || isCartPage || isCheckoutPage || isMyAccount ;
 
   return (
     <>
@@ -142,6 +144,7 @@ function AppContent() {
 
         {/* --- Shop routes with correct props --- */}
         <Route path="/shop" element={<ShopPage onAddToCart={handleAddToCart} />} />
+        <Route path="/my-account" element={<MyAccountPage />} />
         <Route path="/login-shop" element={<LoginPage />} />
         <Route path="/register-shop" element={<RegisterPage />} />
         <Route 

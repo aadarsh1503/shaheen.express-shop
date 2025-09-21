@@ -1,8 +1,28 @@
+// src/LoginPage.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = (e) => {
+    e.preventDefault(); // Prevent page reload
+    
+    // For testing, we just need the email to be present.
+    // In a real app, you would validate credentials here.
+    if (email) {
+      // Extract the part of the email before the "@" symbol
+      const username = email.split('@')[0];
+      
+      // Navigate to the my-account page and pass the username in the state
+      navigate('/my-account', { state: { username: username } });
+    } else {
+      alert('Please enter an email address to log in.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4 font-sans">
@@ -11,12 +31,14 @@ const LoginPage = () => {
           Login
         </h1>
 
-        <form>
+        <form onSubmit={handleLogin}>
           {/* Username or Email Input */}
           <div className="mb-6">
             <input
               type="text"
               id="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Username or email address *"
               className="w-full px-4 py-3 text-sm text-gray-700 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder-gray-500"
               required
