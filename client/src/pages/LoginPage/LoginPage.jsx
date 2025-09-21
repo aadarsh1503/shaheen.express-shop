@@ -14,11 +14,8 @@ const LoginPage = () => {
     // For testing, we just need the email to be present.
     // In a real app, you would validate credentials here.
     if (email) {
-      // Extract the part of the email before the "@" symbol
-      const username = email.split('@')[0];
-      
-      // Navigate to the my-account page and pass the username in the state
-      navigate('/my-account', { state: { username: username } });
+      // Navigate to the my-account page and pass the FULL email in the state
+      navigate('/my-account', { state: { email: email } });
     } else {
       alert('Please enter an email address to log in.');
     }
@@ -35,8 +32,8 @@ const LoginPage = () => {
           {/* Username or Email Input */}
           <div className="mb-6">
             <input
-              type="text"
-              id="username"
+              type="email" // Changed type to "email" for better semantics
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Username or email address *"

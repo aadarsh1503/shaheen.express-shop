@@ -54,11 +54,12 @@ const ShopFooter = () => {
           <div className="space-y-4">
   <img 
     src="https://shaheen-express-shop.vercel.app/assets/i1-Jri-U_l6.png" 
-    alt="Zoom Logo White" 
+    alt="Shaheen Express Logo" 
     className="w-32 h-auto" 
   />
-  <p className="text-sm tracking-wider">Click it or miss it</p>
+  <p className="text-sm tracking-wider">Fast and Reliable Cargo Services by Shaheen Express</p>
 </div>
+
 
 
           {/* Column 2: Useful Links */}

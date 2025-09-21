@@ -1,5 +1,5 @@
 // src/MyAccountPage.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -13,27 +13,107 @@ import {
   UserCircle2,
 } from 'lucide-react';
 
+// Import the form components
+import BillingAddressForm from './BillingAddressForm';
+import AccountDetailsForm from './AccountDetailsForm';
+
 const MyAccountPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Get username from state passed by login page, with a fallback
-  const username = location.state?.username || 'aadi1234';
+  const email = location.state?.email || 'user@example.com';
 
   const handleLogout = () => {
-    // Navigate back to the login page
     navigate('/login-shop');
   };
 
   const navItems = [
-    { icon: <LayoutGrid size={20} />, label: 'Dashboard', active: true },
-    { icon: <Package size={20} />, label: 'Orders' },
-    { icon: <Heart size={20} />, label: 'Wishlist' },
-    { icon: <Download size={20} />, label: 'Downloads' },
-    { icon: <MapPin size={20} />, label: 'Addresses' },
-    { icon: <User size={20} />, label: 'Account details' },
-    { icon: <Plus size={20} />, label: 'Appointments' },
+    { id: 'dashboard', icon: <LayoutGrid size={20} />, label: 'Dashboard' },
+    { id: 'orders', icon: <Package size={20} />, label: 'Orders' },
+    { id: 'wishlist', icon: <Heart size={20} />, label: 'Wishlist' },
+    { id: 'downloads', icon: <Download size={20} />, label: 'Downloads' },
+    { id: 'addresses', icon: <MapPin size={20} />, label: 'Addresses' },
+    { id: 'account-details', icon: <User size={20} />, label: 'Account details' },
+    { id: 'appointments', icon: <Plus size={20} />, label: 'Appointments' },
   ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <div className="text-gray-600 leading-relaxed space-y-6">
+            <p>
+              Hello <strong className="font-semibold text-gray-800">{email}</strong> (not{' '}
+              <strong className="font-semibold text-gray-800">{email}</strong>?{' '}
+              <button onClick={handleLogout} className="text-gray-800 hover:underline">
+                Log out
+              </button>
+              )
+            </p>
+            <p>
+              From your account dashboard you can view your{' '}
+              <button onClick={() => setActiveTab('orders')} className="font-semibold text-gray-800 hover:underline">
+                recent orders
+              </button>
+              , manage your{' '}
+              <button onClick={() => setActiveTab('addresses')} className="font-semibold text-gray-800 hover:underline">
+                shipping and billing addresses
+              </button>
+              , and{' '}
+              <button onClick={() => setActiveTab('account-details')} className="font-semibold text-gray-800 hover:underline">
+                edit your password and account details
+              </button>
+              .
+            </p>
+          </div>
+        );
+
+      case 'orders':
+        return (
+          <div className="bg-gray-50 p-8 text-center border border-gray-200">
+            <p className="text-gray-600">
+              No order has been made yet.
+              <button onClick={() => navigate('/shop')} className="ml-2 text-gray-800 hover:underline font-semibold">
+                Browse products
+              </button>
+            </p>
+          </div>
+        );
+      
+      case 'addresses':
+        return <BillingAddressForm userEmail={email} />;
+
+      case 'account-details':
+        return <AccountDetailsForm userEmail={email} />;
+
+      // New case for the appointments tab
+      case 'appointments':
+        return (
+          <div className="space-y-4">
+            <div>
+              <button
+                onClick={() => navigate('/shop')}
+                className="bg-[#212121] text-white py-2 px-6 font-semibold hover:bg-black transition-colors duration-200"
+              >
+                Book
+              </button>
+            </div>
+            <p className="text-gray-600">
+              No appointments scheduled yet.
+            </p>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="text-gray-600">
+            <p>The {navItems.find((item) => item.id === activeTab)?.label} section is currently empty.</p>
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="bg-white min-h-screen font-sans text-gray-800">
@@ -46,26 +126,26 @@ const MyAccountPage = () => {
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
                 <UserCircle2 size={32} className="text-gray-500" />
               </div>
-              <span className="text-gray-600">Hello {username}</span>
+              <span className="text-gray-600 truncate">Hello {email}</span>
             </div>
             <ul>
-              {navItems.map((item, index) => (
-                <li key={index}>
-                  <a
-                    href="#"
-                    className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors ${
-                      item.active ? 'border-b-2 border-black' : ''
+              {navItems.map((item) => (
+                <li key={item.id}>
+                  <button
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left ${
+                      activeTab === item.id ? 'border-b-2 border-black font-medium' : ''
                     }`}
                   >
                     {item.icon}
                     <span>{item.label}</span>
-                  </a>
+                  </button>
                 </li>
               ))}
               <li>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full"
+                  className="flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left"
                 >
                   <LogOut size={20} />
                   <span>Log out</span>
@@ -76,33 +156,7 @@ const MyAccountPage = () => {
 
           {/* Right Content */}
           <main className="md:w-3/4">
-            <div className="text-gray-600 leading-relaxed space-y-6">
-              <p className='bg-gray-50 border-l-2 border-gray-400 p-4 text-sm'>
-                Your account with Shaheen Express is using a temporary password. We emailed you a link to change your password.
-              </p>
-              <p>
-                Hello <strong className="font-semibold text-gray-800">{username}</strong> (not <strong className="font-semibold text-gray-800">{username}</strong>?{' '}
-                <button onClick={handleLogout} className="text-gray-800 hover:underline">
-                  Log out
-                </button>
-                )
-              </p>
-              <p>
-                From your account dashboard you can view your{' '}
-                <a href="#" className="font-semibold text-gray-800 hover:underline">
-                  recent orders
-                </a>
-                , manage your{' '}
-                <a href="#" className="font-semibold text-gray-800 hover:underline">
-                  shipping and billing addresses
-                </a>
-                , and{' '}
-                <a href="#" className="font-semibold text-gray-800 hover:underline">
-                  edit your password and account details
-                </a>
-                .
-              </p>
-            </div>
+            {renderContent()}
           </main>
         </div>
       </div>
