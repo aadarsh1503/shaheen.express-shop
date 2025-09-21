@@ -153,9 +153,11 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
               </Link>
             </div>
             <div className="flex items-center gap-x-5">
+              <a href='/login-shop'>
               <button className="text-gray-800 hover:text-black transition-colors" aria-label="My account">
                 <User size={24} strokeWidth={1.5} />
               </button>
+              </a>
               <button onClick={() => setIsCartOpen(true)} className="relative text-gray-800 hover:text-black transition-colors" aria-label="Shopping cart">
                 <ShoppingCart size={24} strokeWidth={1.5} />
                 {cartItemCount > 0 && (
