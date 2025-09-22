@@ -29,6 +29,10 @@ import RegisterPage from './pages/LoginPage/RegisterPage';
 import CartPage from './pages/CartPage/CartPage';
 import CheckoutPage from './pages/CartPage/CheckoutPage';
 import MyAccountPage from './pages/MyAccountPage/MyAccountPage';
+import PrivacyPolicy1 from './pages/privacy/Privacy';
+import UserDataProtectionPolicy1 from './pages/UserData/UserData';
+import TermsOfUse1 from './pages/Terms_of _Use/Terms';
+import ReturnRefundPolicy12 from './pages/Return/Return';
 
 
 function ScrollToTop() {
@@ -52,8 +56,16 @@ function LayoutWrapper({ children, cartItems, onRemoveItem, subtotal, currency }
   const isCartPage = location.pathname === "/cart";
   const isCheckoutPage = location.pathname === "/checkout";
   const isMyAccount = location.pathname === "/my-account";
+  const isPrivacy = location.pathname === "/privacy-store";
+  const isUserData = location.pathname === "/userData-Protection";
+  const isTerms = location.pathname === "/terms-policy";
+  const isReturn = location.pathname === "/return-refund";
 
-  const useShopLayout = isShopPage || isLoginPage || isRegisterPage || isCartPage || isCheckoutPage || isMyAccount ;
+
+
+
+
+  const useShopLayout = isShopPage || isLoginPage || isRegisterPage || isTerms || isCartPage || isReturn || isCheckoutPage || isMyAccount || isPrivacy || isUserData;
 
   return (
     <>
@@ -147,6 +159,13 @@ function AppContent() {
         <Route path="/my-account" element={<MyAccountPage />} />
         <Route path="/login-shop" element={<LoginPage />} />
         <Route path="/register-shop" element={<RegisterPage />} />
+        <Route path="/userData-Protection" element={<UserDataProtectionPolicy1 />} />
+        <Route path="/terms-policy" element={<TermsOfUse1 />} />
+        <Route path="/return-refund" element={<ReturnRefundPolicy12 />} />
+
+
+        <Route path="/privacy-store" element={<PrivacyPolicy1 />} />
+
         <Route 
           path="/cart" 
           element={

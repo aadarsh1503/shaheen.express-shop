@@ -60,7 +60,7 @@ const Navbar = () => {
           }
         `}
       >
-        <div className="container mx-auto flex max-w-8xl items-center justify-between px-6 h-24"> 
+        <div className="container mx-auto flex  items-center justify-between h-24"> 
           {/* Logo Section */}
           <div className="flex items-center space-x-4">
             <a href="/" onClick={closeAllMenus}>
@@ -78,22 +78,22 @@ const Navbar = () => {
             <Link to="/faq" className="hover:text-gray-200">FAQ</Link>
             <Link to="/privacy-policy" className="hover:text-gray-200 whitespace-nowrap">Privacy Policy</Link>
             <Link to="/T&C" className="hover:text-gray-200">T&C</Link>
-            <Link to="/shop" className="hover:text-gray-200">Shop</Link>
+            <Link to="/shop" className="hover:text-gray-200 whitespace-nowrap">Online Store</Link>
             <Link to="/tracking-Form" className="hover:text-gray-200">Tracking</Link>
-            <a href="https://www.talentportal.bh/#pills-profile" target="_blank" rel="noopener noreferrer" className="hover:text-gray-200">
+            {/* <a href="https://www.talentportal.bh/#pills-profile" target="_blank" rel="noopener noreferrer" className="hover:text-gray-200">
               Careers
-            </a>
+            </a> */}
 
             {/* Email Section */}
             <div className="relative">
               <div className="flex items-center space-x-2 cursor-pointer" onClick={toggleDropdown}>
                 <div className="rounded-full shadow-md">
-                  <img src="https://gtl.id/icon_email.svg" alt="Email Icon" className="h-4 w-4" />
+                  <img src="https://res.cloudinary.com/dtjskgsnk/image/upload/v1758457999/images__1_-removebg-preview_cjenmk.png" alt="Email Icon" className="h-4 w-4" />
                 </div>
                 <span className="text-sm font-semibold">EMAIL</span>
               </div>
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-4 bg-white text-black shadow-lg rounded-lg p-4 w-48">
+                <div className="absolute mt-4 bg-white text-black shadow-lg rounded-lg p-4 w-48">
                   <ul>
                     {emailOptions.map((option, index) => (
                       <li key={index} className="mb-2">

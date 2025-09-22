@@ -66,9 +66,9 @@ const ShopFooter = () => {
           <div className="space-y-4">
             <h3 className="text-xl tracking-wide">Useful links</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:opacity-75 transition-opacity">Privacy Policy</a></li>
-              <li><a href="#" className="hover:opacity-75 transition-opacity">Terms & Conditions</a></li>
-              <li><a href="#" className="hover:opacity-75 transition-opacity">Refund and Returns Policy</a></li>
+              <li><a href="/return-refund" className="hover:opacity-75 transition-opacity">Return & Refund Policy</a></li>
+              <li><a href="/terms-policy" className="hover:opacity-75 transition-opacity">Terms of Use</a></li>
+              <li><a href="/userData-Protection" className="hover:opacity-75 transition-opacity">User Data Protection Policy</a></li>
             </ul>
           </div>
 

@@ -1,18 +1,17 @@
 // src/ShopPage.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   SlidersHorizontal, 
   ChevronDown, 
   LayoutGrid, 
   Rows3, 
-  Menu, 
   ShoppingCart, 
   Expand 
 } from 'lucide-react';
 // Assume ShopHero is in the same directory
 import ShopHero from './ShopHero'; 
 
-// --- DUMMY DATA --- (Updated for Courier, Cargo, Logistics)
+// --- DUMMY DATA --- (No changes here)
 const productsData = [
   {
     id: 1,
@@ -86,12 +85,133 @@ const productsData = [
     image1: 'https://m.media-amazon.com/images/I/41VXniUCO7L._AC_SL1000_.jpg',
     image2: 'https://avatars.mds.yandex.net/i?id=c60cde1bd51565d7093c4b2701143c1f0789c320-12385820-images-thumbs&n=13',
   },
+  {
+    id: 9,
+    name: 'Corrugated Cardboard Boxes (20-Pack)',
+    price: 14.000,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://avatars.mds.yandex.net/i?id=bf89bb09a439833d5a7d289d5278b050f3e389b1-16457393-images-thumbs&n=13',
+    image2: 'https://avatars.mds.yandex.net/i?id=bf89bb09a439833d5a7d289d5278b050f3e389b1-16457393-images-thumbs&n=13',
+  },
+  {
+    id: 10,
+    name: 'Double Wall Large Moving Boxes (10-Pack)',
+    price: 20.500,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://images-na.ssl-images-amazon.com/images/I/41HgnjewhZL.jpg',
+    image2: 'https://images-na.ssl-images-amazon.com/images/I/41HgnjewhZL.jpg',
+  },
+  {
+    id: 11,
+    name: 'Wooden Euro Pallet (Standard 1200x800mm)',
+    price: 28.000,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://image.made-in-china.com/2f0j00cABlWayMfbup/Fumigation-Epal-1-Euro-Standard-1200X1000X144mm-Pine-Wood-Pallet-Four-Way-Pallet-1200X800mm.webp',
+    image2: 'https://image.made-in-china.com/2f0j00cABlWayMfbup/Fumigation-Epal-1-Euro-Standard-1200X1000X144mm-Pine-Wood-Pallet-Four-Way-Pallet-1200X800mm.webp',
+  },
+  {
+    id: 12,
+    name: 'Plastic Shipping Pallet (Heavy Duty)',
+    price: 32.750,
+    currency: 'BHD',
+    inStock: false,
+    image1: 'https://i.pinimg.com/originals/ad/b0/03/adb003a6bedbab3867d84dd1040c6fd6.jpg',
+    image2: 'https://i.pinimg.com/originals/ad/b0/03/adb003a6bedbab3867d84dd1040c6fd6.jpg',
+  },
+  {
+    id: 13,
+    name: 'Foam Cushioning Sheets (100 Pack)',
+    price: 7.800,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://m.media-amazon.com/images/I/71PYHr3VPkL._AC_UL960_QL65_.jpg',
+    image2: 'https://m.media-amazon.com/images/I/71PYHr3VPkL._AC_UL960_QL65_.jpg',
+  },
+  {
+    id: 14,
+    name: 'Cargo Net for Pallet Securing',
+    price: 19.000,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://avatars.mds.yandex.net/i?id=2ff16a8de9285526ef3c93340cdd50306ae0950a-10642623-images-thumbs&n=13',
+    image2: 'https://avatars.mds.yandex.net/i?id=2ff16a8de9285526ef3c93340cdd50306ae0950a-10642623-images-thumbs&n=13',
+  },
+  {
+    id: 15,
+    name: 'Reusable Plastic Crates (Set of 5)',
+    price: 24.500,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://avatars.mds.yandex.net/i?id=8e41072a5dc7a3244a52f197cc0096bc39e71180-12472308-images-thumbs&n=13',
+    image2: 'https://avatars.mds.yandex.net/i?id=8e41072a5dc7a3244a52f197cc0096bc39e71180-12472308-images-thumbs&n=13',
+  },
+  {
+    id: 16,
+    name: 'Edge Protectors for Pallets (50 Pack)',
+    price: 11.300,
+    currency: 'BHD',
+    inStock: true,
+    image1: 'https://m.media-amazon.com/images/I/71HJLlKCVgL.jpg',
+    image2: 'https://m.media-amazon.com/images/I/71HJLlKCVgL.jpg',
+  },
 ];
 
 
-// --- PRODUCT CARD COMPONENT ---
-// It now receives an `onAddToCart` prop to call when the button is clicked.
-const ProductCard = ({ product, onAddToCart }) => {
+// --- NEW DYNAMIC PRODUCT CARD COMPONENT ---
+// This component now accepts a `layout` prop ('grid' or 'list')
+// and renders a different style for each.
+const ProductCard = ({ product, onAddToCart, layout }) => {
+  // --- LIST VIEW RENDER ---
+  if (layout === 'list') {
+    return (
+      <div className="flex flex-col sm:flex-row gap-6 border p-4 rounded-lg bg-white shadow-sm w-full transition-shadow hover:shadow-lg">
+        {/* Image container */}
+        <div className="relative w-full sm:w-48 h-48 flex-shrink-0 bg-white rounded-md overflow-hidden self-center">
+          <img
+            src={product.image1}
+            alt={product.name}
+            className="w-full h-full object-contain"
+          />
+        </div>
+        {/* Details container */}
+        <div className="flex flex-col flex-grow text-left">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
+          <div className="flex items-center space-x-3 mb-4">
+            <p className="text-[#EC2027] font-bold text-lg">
+              {product.price.toFixed(3)} {product.currency}
+            </p>
+            {product.inStock ? (
+              <span className="text-green-700 bg-green-100 text-sm font-medium rounded-full px-3 py-1">
+                In stock
+              </span>
+            ) : (
+              <span className="text-red-700 bg-red-100 text-sm font-medium rounded-full px-3 py-1">
+                Out of stock
+              </span>
+            )}
+          </div>
+          <p className="text-gray-500 text-sm mb-auto pb-4">
+            Essential for logistics and shipping. This high-quality product ensures your items are packed securely and handled efficiently.
+          </p>
+          <div className="mt-auto">
+            <button
+              onClick={() => onAddToCart(product)}
+              disabled={!product.inStock}
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-[#EC2027] text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              <ShoppingCart size={18} />
+              <span>Add to Cart</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- GRID VIEW RENDER (Default) ---
   return (
     <div className="text-center group">
       <div className="relative overflow-hidden border-b-2 border-[#EC2027] group-hover:border-[#EC2027] transition-colors duration-300 pb-2">
@@ -110,10 +230,10 @@ const ProductCard = ({ product, onAddToCart }) => {
                           opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0
                           transition-all duration-300 ease-in-out">
             <div className="flex bg-white rounded-md shadow-lg overflow-hidden">
-                {/* MODIFIED: onClick handler added */}
                 <button 
                   onClick={() => onAddToCart(product)}
-                  className="p-3 text-gray-600 hover:bg-gray-100 hover:text-black transition-colors" 
+                  disabled={!product.inStock}
+                  className="p-3 text-gray-600 hover:bg-gray-100 hover:text-black transition-colors disabled:text-gray-300 disabled:hover:bg-white disabled:cursor-not-allowed" 
                   title="Add to Cart"
                 >
                     <ShoppingCart size={20} />
@@ -149,43 +269,123 @@ const ProductCard = ({ product, onAddToCart }) => {
 
 
 // --- MAIN SHOP PAGE COMPONENT ---
-// It receives `onAddToCart` and passes it to the ProductCard.
 const ShopPage = ({ onAddToCart }) => {
+  // --- STATE MANAGEMENT ---
+  // State for the product list that will be displayed
+  const [displayedProducts, setDisplayedProducts] = useState(productsData);
+  // State for the current layout view ('grid' or 'list')
+  const [layout, setLayout] = useState('grid');
+  // State for the sorting option
+  const [sortBy, setSortBy] = useState('default');
+  // State for the 'in stock only' filter
+  const [showInStockOnly, setShowInStockOnly] = useState(false);
+
+  // --- EFFECT FOR FILTERING AND SORTING ---
+  // This effect runs whenever the sorting or stock filter changes
+  useEffect(() => {
+    let tempProducts = [...productsData];
+
+    // 1. Apply 'In Stock' filter
+    if (showInStockOnly) {
+      tempProducts = tempProducts.filter(p => p.inStock);
+    }
+
+    // 2. Apply sorting
+    switch (sortBy) {
+      case 'price-asc':
+        tempProducts.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        tempProducts.sort((a, b) => b.price - a.price);
+        break;
+      case 'name-asc':
+        tempProducts.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        tempProducts.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      default:
+        // Default sort by ID to maintain original order
+        tempProducts.sort((a, b) => a.id - b.id);
+        break;
+    }
+
+    setDisplayedProducts(tempProducts);
+  }, [sortBy, showInStockOnly]);
+
+
   return (
     <div className="font-sans bg-gray-50 min-h-screen">
       <ShopHero />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 text-gray-600">
+        {/* --- BREADCRUMBS AND FILTER BAR --- */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 text-gray-600 border-b pb-4">
           <div className="text-sm mb-4 md:mb-0">
             <span>Home</span>
             <span className="mx-2">/</span>
             <span className="font-medium text-gray-800">Shop</span>
           </div>
-          <div className="flex items-center space-x-6">
-            <button className="flex items-center space-x-2 hover:text-gray-900">
-              <SlidersHorizontal size={20} />
-              <span>Filters</span>
-            </button>
+          {/* --- INTERACTIVE CONTROLS --- */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+             <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="in-stock"
+                checked={showInStockOnly}
+                onChange={() => setShowInStockOnly(!showInStockOnly)}
+                className="h-4 w-4 rounded border-gray-300 text-[#EC2027] focus:ring-[#EC2027]"
+              />
+              <label htmlFor="in-stock" className="text-sm select-none">In Stock Only</label>
+            </div>
+
             <div className="flex items-center space-x-2">
-              <select className="bg-transparent border-none focus:ring-0 p-0 text-gray-600">
-                <option>Default sorting</option>
-                <option>Sort by price: low to high</option>
-                <option>Sort by price: high to low</option>
-                <option>Sort by newness</option>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-transparent border-gray-300 rounded-md focus:ring-[#EC2027] focus:border-[#EC2027] p-2 text-gray-600 text-sm"
+              >
+                <option value="default">Default sorting</option>
+                <option value="price-asc">Sort by price: low to high</option>
+                <option value="price-desc">Sort by price: high to low</option>
+                <option value="name-asc">Sort by name: A-Z</option>
+                <option value="name-desc">Sort by name: Z-A</option>
               </select>
             </div>
             <div className="hidden md:flex items-center space-x-3 text-gray-400">
-                <LayoutGrid className="cursor-pointer text-gray-800" />
-                <Rows3 className="cursor-pointer hover:text-gray-800" />
-                <Menu className="cursor-pointer hover:text-gray-800" />
+                <LayoutGrid 
+                  onClick={() => setLayout('grid')}
+                  className={`cursor-pointer transition-colors ${layout === 'grid' ? 'text-gray-800' : 'hover:text-gray-800'}`} 
+                />
+                <Rows3 
+                  onClick={() => setLayout('list')}
+                  className={`cursor-pointer transition-colors ${layout === 'list' ? 'text-gray-800' : 'hover:text-gray-800'}`} 
+                />
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
-          {productsData.map((product) => (
-            // Pass the handler down to each card
-            <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} />
-          ))}
+        
+        {/* --- DYNAMIC PRODUCT DISPLAY --- */}
+        {/* The className is now dynamic based on the 'layout' state */}
+        <div className={
+          layout === 'grid'
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12"
+            : "flex flex-col gap-6"
+        }>
+          {displayedProducts.length > 0 ? (
+            displayedProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onAddToCart={onAddToCart} 
+                layout={layout} // Pass layout prop to the card
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-16">
+              <h3 className="text-xl text-gray-700">No products found</h3>
+              <p className="text-gray-500 mt-2">Try adjusting your filters to find what you're looking for.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
