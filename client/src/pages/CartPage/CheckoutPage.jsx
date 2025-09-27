@@ -24,6 +24,7 @@ const InputField = ({ id, label, placeholder, required = true, type = 'text', cl
 // Main Checkout Page Component
 const CheckoutPage = ({ cartItems, subtotal, shippingCost, total, vat, currency }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
   const handlePlaceOrder = (e) => {
@@ -32,11 +33,21 @@ const CheckoutPage = ({ cartItems, subtotal, shippingCost, total, vat, currency 
       alert("Please accept the terms and conditions to place your order.");
       return;
     }
-    // In a real app, you would process the payment and order here.
-    alert("Order placed successfully! (This is a demo)");
-    // Optionally, you can clear the cart and redirect after order placement
-    // onEmptyCart(); 
-    navigate('/shop'); 
+
+    // Set processing to true to show loading state on the button
+    setIsProcessing(true);
+
+    // Simulate a payment processing delay
+    setTimeout(() => {
+      // Show a payment error message after the delay
+      alert("Payment error, please try again.");
+
+      // Stop the processing state
+      setIsProcessing(false);
+      
+      // Redirect to the homepage after the error
+      navigate('/shop'); 
+    }, 2500); // 2.5-second delay to simulate API call
   };
   
   if (cartItems.length === 0) {
@@ -189,11 +200,17 @@ const CheckoutPage = ({ cartItems, subtotal, shippingCost, total, vat, currency 
                 
                 <button 
                   type="submit"
-                  disabled={!termsAccepted}
-                  className="w-full bg-[#EC2027] text-white font-semibold py-4 mt-6 rounded-md hover:bg-[#EC2027] transition-colors disabled:bg-teal-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={!termsAccepted || isProcessing}
+                  className="w-full bg-[#EC2027] text-white font-semibold py-4 mt-6 rounded-md hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  <Lock size={16} />
-                  Place order
+                  {isProcessing ? (
+                    'Proceeding to Payment...'
+                  ) : (
+                    <>
+                      <Lock size={16} />
+                      Place order
+                    </>
+                  )}
                 </button>
 
              </div>
