@@ -1,25 +1,57 @@
-// src/LoginPage.js
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/LoginPage/LoginPage.js (Corrected)
+
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../Context/AuthContext';
+import { loginUser } from '../frontend-admin/services/api';
+
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Optional: for loading state
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth(); // This will now work correctly
 
-  const handleLogin = (e) => {
-    e.preventDefault(); // Prevent page reload
-    
-    // For testing, we just need the email to be present.
-    // In a real app, you would validate credentials here.
-    if (email) {
-      // Navigate to the my-account page and pass the FULL email in the state
-      navigate('/my-account', { state: { email: email } });
-    } else {
-      alert('Please enter an email address to log in.');
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/my-account', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // 1. Call the API function to perform the login
+      const response = await loginUser(email, password);
+      
+      // 2. Extract the token from the API response
+      //    (Assuming your backend sends { token: '...' })
+      const { token } = response.data;
+
+      if (token) {
+        // 3. If we get a token, update the AuthContext
+        login(token);
+        // The useEffect will handle the navigation automatically
+      } else {
+        setError('Login failed: No token received from server.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+    } finally {
+        setIsLoading(false);
     }
   };
+
+  if (isAuthenticated) {
+    return null; // Prevent flash of login form if already authenticated
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4 font-sans">
@@ -29,10 +61,10 @@ const LoginPage = () => {
         </h1>
 
         <form onSubmit={handleLogin}>
-          {/* Username or Email Input */}
+          {/* ... (Your input fields for email and password remain the same) ... */}
           <div className="mb-6">
             <input
-              type="email" // Changed type to "email" for better semantics
+              type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -41,13 +73,13 @@ const LoginPage = () => {
               required
             />
           </div>
-
-          {/* Password Input */}
           <div className="mb-6 relative">
             <input
               type={showPassword ? 'text' : 'password'}
               id="password"
               placeholder="Password *"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 text-sm text-gray-700 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder-gray-500"
               required
             />
@@ -61,27 +93,23 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* Remember Me & Lost Password */}
-          <div className="flex items-center justify-between mb-6 text-sm">
-            <label htmlFor="remember-me" className="flex items-center cursor-pointer text-gray-600">
-              <input type="checkbox" id="remember-me" className="h-4 w-4 border-gray-300 text-gray-800 focus:ring-gray-700" />
-              <span className="ml-2">Remember me</span>
-            </label>
-            <a href="#" className="text-gray-600 hover:text-gray-900 hover:underline">
+          {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
+
+          <div className="flex items-end justify-end mb-6 text-sm">
+            <Link to="/forgot-password" className="text-gray-600 hover:text-gray-900 hover:underline">
               Lost your password?
-            </a>
+            </Link>
           </div>
 
-          {/* Log in Button */}
           <button
             type="submit"
-            className="w-full bg-[#212121] text-white py-3 font-semibold hover:bg-black transition-colors duration-200"
+            disabled={isLoading} // Disable button while logging in
+            className="w-full bg-[#212121] text-white py-3 font-semibold hover:bg-black transition-colors duration-200 disabled:bg-gray-400"
           >
-            Log in
+            {isLoading ? 'Logging in...' : 'Log in'}
           </button>
         </form>
 
-        {/* Register Link */}
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
             Not a member? <a href="/register-shop" className="text-gray-800 hover:underline">Register</a>

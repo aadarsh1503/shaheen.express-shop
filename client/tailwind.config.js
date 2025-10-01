@@ -9,6 +9,7 @@ export default {
       colors: {
         dgreen: '#EC2027',
         lgray:'#0000007A', // Custom green color
+        brand_red:'#EC2027',
       },
       fontSize: {
         '18px': '18px', // Adding custom 18px font size

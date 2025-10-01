@@ -1,14 +1,10 @@
-// src/CartPage.js
+// src/pages/CartPage/CartPage.js
 import React, { useMemo } from 'react';
 import { X, Minus, Plus, MapPin, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// --- MAIN CART PAGE COMPONENT ---
-// It receives all data and functions as props. No more internal state!
 const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) => {
     
-  // --- CART CALCULATION LOGIC ---
-  // This logic remains but now depends on the `cartItems` prop.
   const [shippingOption, setShippingOption] = React.useState('pickup');
 
   const { subtotal, shippingCost, total, vat } = useMemo(() => {
@@ -16,30 +12,24 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
       (acc, item) => acc + parseFloat(item.price) * item.quantity,
       0
     );
-
     const shippingCost = shippingOption === 'delivery' ? 2.200 : 0;
     const total = subtotal + shippingCost;
-    const vat = total * 0.10; // Assuming 10% VAT on the total
-
+    const vat = total * 0.10;
     return { subtotal, shippingCost, total, vat };
   }, [cartItems, shippingOption]);
 
-
-  // --- RENDER LOGIC ---
-  // NEW: Unique empty cart message
   if (cartItems.length === 0) {
     return (
       <div className="bg-[#F8F8F8] min-h-[60vh] flex flex-col items-center justify-center text-center p-8">
         <h1 className="text-3xl font-light mb-2 text-gray-800">Your Cart is a Blank Canvas</h1>
         <p className="text-gray-500 mb-6">Looks like you haven't added any gear yet. Time to start creating your masterpiece!</p>
-        <Link to="/shop" className="bg-[#EC2027] text-white font-semibold py-3 px-8 hover:bg-[#EC2027] transition-colors">
+        <Link to="/shop" className="bg-[#EC2027] text-white font-semibold py-3 px-8 hover:bg-red-700 transition-colors">
           Return to Shop
         </Link>
       </div>
     )
   }
 
-  // Currency can be taken from the first item if the cart is not empty
   const currency = cartItems.length > 0 ? cartItems[0].currency : 'BHD';
 
   return (
@@ -49,10 +39,14 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
         {/* Left Column: Cart Items */}
         <div className="lg:col-span-2">
           {cartItems.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 py-4 border-b border-gray-200">
-              <button onClick={() => onRemoveItem(item.id)} className="text-gray-400 hover:text-red-500">
+            // CHANGE #1: Use the truly unique cart_item_id for the key
+            <div key={item.cart_item_id} className="flex items-center gap-4 py-4 border-b border-gray-200">
+              
+              {/* CHANGE #2: Pass the correct cart_item_id to onRemoveItem */}
+              <button onClick={() => onRemoveItem(item.cart_item_id)} className="text-gray-400 hover:text-red-500">
                 <X size={20} />
               </button>
+              
               <img src={item.image1} alt={item.name} className="w-20 h-20 object-contain bg-white border border-gray-200" />
               <div className="flex-grow">
                 <p className="text-gray-800">{item.name}</p>
@@ -62,13 +56,19 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
                 <p className="text-sm text-gray-500">{parseFloat(item.price).toFixed(3)} {item.currency}</p>
               </div>
               <div className="flex items-center gap-3 border border-gray-300 px-2 py-1">
-                <button onClick={() => onQuantityChange(item.id, -1)} disabled={item.quantity <= 1}>
+                
+                {/* CHANGE #3: Pass the correct cart_item_id to onQuantityChange */}
+                <button onClick={() => onQuantityChange(item.cart_item_id, -1)} disabled={item.quantity <= 1}>
                   <Minus size={16} className={item.quantity <= 1 ? 'text-gray-300' : 'text-gray-600'} />
                 </button>
+                
                 <span>{item.quantity}</span>
-                <button onClick={() => onQuantityChange(item.id, 1)}>
+
+                {/* CHANGE #4: Pass the correct cart_item_id to onQuantityChange */}
+                <button onClick={() => onQuantityChange(item.cart_item_id, 1)}>
                   <Plus size={16} className="text-gray-600" />
                 </button>
+
               </div>
               <p className="font-semibold text-gray-800 w-28 text-right">
                 {(parseFloat(item.price) * item.quantity).toFixed(3)} {item.currency}
@@ -87,7 +87,7 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
           </div>
         </div>
 
-        {/* Right Column: Cart Totals */}
+        {/* Right Column: Cart Totals (No changes needed here) */}
         <div className="bg-white border border-gray-200 p-6 h-fit">
           <h2 className="text-2xl font-light text-gray-800 mb-4 pb-4 border-b">Cart totals</h2>
           
@@ -131,7 +131,7 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
             </div>
           </div>
 
-          <Link to="/checkout" className="block text-center w-full bg-[#EC2027] text-white font-semibold py-3 mt-6 hover:bg-[#EC2027] transition-colors">
+          <Link to="/checkout" className="block text-center w-full bg-[#EC2027] text-white font-semibold py-3 mt-6 hover:bg-red-700 transition-colors">
             Proceed to checkout
           </Link>
         </div>

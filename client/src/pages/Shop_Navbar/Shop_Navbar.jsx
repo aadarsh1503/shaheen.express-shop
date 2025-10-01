@@ -1,22 +1,21 @@
-// src/pages/Shop_Navbar/Shop_Navbar.js
 import React, { useState, useEffect } from 'react';
 import { Menu, Search, User, ShoppingCart, X } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Import Link
+import { Link } from 'react-router-dom';
 import MegaMenu from './MegaMenu';
+import { useAuth } from '../Context/AuthContext';
+import SearchOverlay from './SearchOverlay';
 
-// --- UPDATED SHOPPING CART SIDEBAR ---
+// --- SHOPPING CART SIDEBAR (No changes needed here) ---
 const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtotal, currency }) => {
   const hasItems = cartItems && cartItems.length > 0;
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
         aria-hidden="true"
       />
-      {/* Sidebar Panel */}
       <div
         className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
@@ -30,9 +29,7 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
           </button>
         </div>
 
-        {/* Conditional Content */}
         {!hasItems ? (
-          // Empty Cart View
           <div className="flex flex-col items-center justify-center h-[calc(100%-65px)] p-6 text-center">
             <div className="p-4 bg-gray-100 rounded-full mb-4">
               <ShoppingCart size={32} className="text-gray-400" />
@@ -47,9 +44,7 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
             </Link>
           </div>
         ) : (
-          // Cart with Items View
           <div className="flex flex-col h-full" style={{ height: 'calc(100% - 65px)' }}>
-            {/* Item List */}
             <div className="flex-grow overflow-y-auto p-4">
               {cartItems.map(item => (
                 <div key={item.id} className="flex gap-4 py-3 border-b border-gray-200 items-center">
@@ -58,14 +53,17 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
                     <p className="text-sm font-medium text-gray-800 leading-tight">{item.name}</p>
                     <p className="text-xs text-gray-500 mt-1">{item.quantity} × {(parseFloat(item.price)).toFixed(3)} {currency}</p>
                   </div>
-                  <button onClick={() => onRemoveItem(item.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2" aria-label={`Remove ${item.name}`}>
-                    <X size={16} />
-                  </button>
+                  {/* THIS BUTTON NOW CORRECTLY TRIGGERS THE API CALL VIA THE PROP */}
+                  <button 
+    onClick={() => onRemoveItem(item.cart_item_id)} // Change from item.id to item.cart_item_id
+    className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2" 
+    aria-label={`Remove ${item.name}`}
+  >
+    <X size={16} />
+  </button>
                 </div>
               ))}
             </div>
-
-            {/* Footer with Totals & Links */}
             <div className="border-t p-4 space-y-4 bg-gray-50">
                 <div className="flex justify-between font-semibold text-gray-800">
                     <span>Subtotal:</span>
@@ -88,13 +86,13 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
 };
 
 
-// --- UPDATED NAVBAR COMPONENT ---
-// It now accepts props to pass down to the sidebar
+// --- NAVBAR COMPONENT (No changes needed here) ---
 const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
   
-  // Calculate item count directly from the passed-in cartItems prop
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const [isVisible, setIsVisible] = useState(true);
@@ -117,13 +115,13 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
   }, [lastScrollY]);
 
   useEffect(() => {
-    if (isCartOpen || isMenuOpen) {
+    if (isCartOpen || isMenuOpen || isSearchOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
     }
     return () => { document.body.style.overflow = 'auto'; };
-  }, [isCartOpen, isMenuOpen]);
+  }, [isCartOpen, isMenuOpen, isSearchOpen]);
 
   return (
     <>
@@ -143,7 +141,7 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
               <button onClick={() => setIsMenuOpen(true)} className="text-gray-800 hover:text-black transition-colors" aria-label="Open menu">
                 <Menu size={28} strokeWidth={1.5} />
               </button>
-              <button className="text-gray-800 hover:text-black transition-colors" aria-label="Search">
+              <button onClick={() => setIsSearchOpen(true)} className="text-gray-800 hover:text-black transition-colors" aria-label="Search">
                 <Search size={24} strokeWidth={1.5} />
               </button>
             </div>
@@ -153,11 +151,11 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
               </Link>
             </div>
             <div className="flex items-center gap-x-5">
-              <a href='/login-shop'>
-              <button className="text-gray-800 hover:text-black transition-colors" aria-label="My account">
-                <User size={24} strokeWidth={1.5} />
-              </button>
-              </a>
+              <Link to={isAuthenticated ? '/my-account' : '/login-shop'}>
+                <button className="text-gray-800 hover:text-black transition-colors" aria-label="My account">
+                  <User size={24} strokeWidth={1.5} />
+                </button>
+              </Link>
               <button onClick={() => setIsCartOpen(true)} className="relative text-gray-800 hover:text-black transition-colors" aria-label="Shopping cart">
                 <ShoppingCart size={24} strokeWidth={1.5} />
                 {cartItemCount > 0 && (
@@ -173,7 +171,6 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
       
       <MegaMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       
-      {/* Pass all necessary props to the sidebar */}
       <ShoppingCartSidebar 
         isOpen={isCartOpen} 
         onClose={() => setIsCartOpen(false)}
@@ -181,6 +178,11 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
         onRemoveItem={onRemoveItem}
         subtotal={subtotal}
         currency={currency}
+      />
+
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
       />
     </>
   );

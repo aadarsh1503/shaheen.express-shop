@@ -1,32 +1,47 @@
-// src/MyAccountPage.js
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid,
-  Package,
-  Heart,
-  Download,
-  MapPin,
-  User,
-  Plus,
-  LogOut,
-  UserCircle2,
+  LayoutGrid, Package, Heart, Download, MapPin, User, Plus, LogOut, UserCircle2,
+  // 1. Import the new icons for the empty state
+  ShoppingBag, ArrowRight, 
 } from 'lucide-react';
 
-// Import the form components
 import BillingAddressForm from './BillingAddressForm';
 import AccountDetailsForm from './AccountDetailsForm';
+import { useAuth } from '../Context/AuthContext';
+import { getCurrentUser } from '../frontend-admin/services/api';
 
 const MyAccountPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const { logout } = useAuth();
 
-  const email = location.state?.email || 'user@example.com';
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [userDetails, setUserDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await getCurrentUser();
+        setUserDetails(response.data);
+      } catch (error) {
+        console.error("Failed to fetch user details:", error);
+        if (error.response && error.response.status === 401) {
+          logout();
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUserDetails();
+  }, [logout]);
 
   const handleLogout = () => {
-    navigate('/login-shop');
+    logout();
+  };
+  
+  const handleDetailsUpdate = (updatedUserDetails) => {
+    setUserDetails(updatedUserDetails);
   };
 
   const navItems = [
@@ -40,14 +55,16 @@ const MyAccountPage = () => {
   ];
 
   const renderContent = () => {
+    const userDisplayName = userDetails?.name || userDetails?.email;
+
     switch (activeTab) {
       case 'dashboard':
         return (
           <div className="text-gray-600 leading-relaxed space-y-6">
             <p>
-              Hello <strong className="font-semibold text-gray-800">{email}</strong> (not{' '}
-              <strong className="font-semibold text-gray-800">{email}</strong>?{' '}
-              <button onClick={handleLogout} className="text-gray-800 hover:underline">
+              Hello <strong className="font-semibold text-gray-800">{userDisplayName}</strong> (not{' '}
+              <strong className="font-semibold text-gray-800">{userDisplayName}</strong>?{' '}
+              <button onClick={handleLogout} className="text-gray-800 hover:underline font-semibold">
                 Log out
               </button>
               )
@@ -69,73 +86,68 @@ const MyAccountPage = () => {
             </p>
           </div>
         );
-
+        
+      // --- 2. THIS IS THE UPDATED SECTION ---
       case 'orders':
         return (
-          <div className="bg-gray-50 p-8 text-center border border-gray-200">
-            <p className="text-gray-600">
-              No order has been made yet.
-              <button onClick={() => navigate('/shop')} className="ml-2 text-gray-800 hover:underline font-semibold">
-                Browse products
-              </button>
+          <div className="text-center bg-gray-50/50 p-10 sm:p-16 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
+            <ShoppingBag className="h-16 w-16 text-gray-400 mb-6" strokeWidth={1.5} />
+            <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+              Your Order History is Empty
+            </h3>
+            <p className="text-gray-500 max-w-md mx-auto mb-8">
+              It looks like you haven't placed an order yet. Let's find something you'll love!
             </p>
+            <button
+              onClick={() => navigate('/shop')}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Start Shopping
+              <ArrowRight className="h-5 w-5" />
+            </button>
           </div>
         );
       
       case 'addresses':
-        return <BillingAddressForm userEmail={email} />;
-
+        return <BillingAddressForm userEmail={userDetails?.email} />;
       case 'account-details':
-        return <AccountDetailsForm userEmail={email} />;
-
-      // New case for the appointments tab
-      case 'appointments':
         return (
-          <div className="space-y-4">
-            <div>
-              <button
-                onClick={() => navigate('/shop')}
-                className="bg-[#212121] text-white py-2 px-6 font-semibold hover:bg-black transition-colors duration-200"
-              >
-                Book
-              </button>
-            </div>
-            <p className="text-gray-600">
-              No appointments scheduled yet.
-            </p>
-          </div>
+          <AccountDetailsForm
+            userDetails={userDetails}
+            onUpdateSuccess={handleDetailsUpdate}
+          />
         );
-
       default:
-        return (
-          <div className="text-gray-600">
-            <p>The {navItems.find((item) => item.id === activeTab)?.label} section is currently empty.</p>
-          </div>
-        );
+        return <p>Section coming soon.</p>;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-lg text-gray-500">Loading your account...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen font-sans text-gray-800">
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-5xl font-light text-center mb-16">My account</h1>
         <div className="flex flex-col md:flex-row gap-12">
-          {/* Left Navigation */}
           <nav className="md:w-1/4 flex-shrink-0">
             <div className="flex items-center gap-4 mb-8">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
                 <UserCircle2 size={32} className="text-gray-500" />
               </div>
-              <span className="text-gray-600 truncate">Hello {email}</span>
+              <span className="text-gray-600 truncate">Hello {userDetails?.name || userDetails?.email}</span>
             </div>
             <ul>
               {navItems.map((item) => (
                 <li key={item.id}>
                   <button
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left ${
-                      activeTab === item.id ? 'border-b-2 border-black font-medium' : ''
-                    }`}
+                    className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left ${activeTab === item.id ? 'border-b-2 border-black font-medium' : ''}`}
                   >
                     {item.icon}
                     <span>{item.label}</span>
@@ -153,8 +165,6 @@ const MyAccountPage = () => {
               </li>
             </ul>
           </nav>
-
-          {/* Right Content */}
           <main className="md:w-3/4">
             {renderContent()}
           </main>
