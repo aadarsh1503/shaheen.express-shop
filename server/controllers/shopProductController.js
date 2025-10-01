@@ -1,15 +1,16 @@
-// controllers/shopProductController.js
+// controllers/shopProductController.js (COMPLETE AND REFACTORED)
+
 import db from '../config/db.js';
 import imagekit from '../config/imagekit.js';
 
-// Helper function to upload to ImageKit
+// Helper function to upload to ImageKit (this was already correct)
 const uploadToImageKit = async (file) => {
   if (!file) return null;
   try {
     const response = await imagekit.upload({
       file: file.buffer,
       fileName: file.originalname,
-      folder: '/shop_products', // Using a different folder for organization
+      folder: '/shop_products',
     });
     return response.url;
   } catch (error) {
@@ -17,154 +18,166 @@ const uploadToImageKit = async (file) => {
     throw new Error('Failed to upload image');
   }
 };
-export const getAllShopProducts = (req, res) => {
-    const query = `
-      SELECT sp.*, sc.name AS categoryName 
-      FROM shop_products AS sp 
-      LEFT JOIN shop_categories AS sc ON sp.categoryId = sc.id 
-      ORDER BY sp.createdAt DESC
-    `;
-    db.query(query, (err, results) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(results);
-    });
-  };
-// @desc    Get shop products by category
-// @route   GET /api/shop/products/category/:categoryId
-export const getShopProductsByCategory = (req, res) => {
-  const { categoryId } = req.params;
-  const query = 'SELECT * FROM shop_products WHERE categoryId = ? ORDER BY createdAt DESC';
-  
-  db.query(query, [categoryId], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
-  });
+
+// --- CONTROLLERS ---
+
+export const getAllShopProducts = async (req, res) => {
+    try {
+        const query = `
+            SELECT sp.*, sc.name AS categoryName 
+            FROM shop_products AS sp 
+            LEFT JOIN shop_categories AS sc ON sp.categoryId = sc.id 
+            ORDER BY sp.createdAt DESC
+        `;
+        const [results] = await db.query(query);
+        res.json(results);
+    } catch (err) {
+        console.error("Error fetching all shop products:", err);
+        res.status(500).json({ error: err.message });
+    }
 };
 
-// @desc    Create a new shop product
-// @route   POST /api/shop/products
+export const getShopProductsByCategory = async (req, res) => {
+    try {
+        const { categoryId } = req.params;
+        const query = 'SELECT * FROM shop_products WHERE categoryId = ? ORDER BY createdAt DESC';
+        const [results] = await db.query(query, [categoryId]);
+        res.json(results);
+    } catch (err) {
+        console.error("Error fetching shop products by category:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const createShopProduct = async (req, res) => {
     try {
-      // MODIFIED: Destructure description
-      const { name, price, inStock, categoryId, description } = req.body;
-      if (!name || !price || !categoryId) {
-        return res.status(400).json({ message: 'Name, price, and category are required' });
-      }
-      const imageUrl = await uploadToImageKit(req.files?.image?.[0]);
-  
-      // MODIFIED: Add description to the new product object
-      const newProduct = { 
-          name, 
-          price, 
-          inStock: inStock === 'true', 
-          categoryId, 
-          description: description || '', // Add description
-          image: imageUrl 
-      };
-  
-      db.query('INSERT INTO shop_products SET ?', newProduct, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        const { name, price, inStock, categoryId, description } = req.body;
+        if (!name || !price || !categoryId) {
+            return res.status(400).json({ message: 'Name, price, and category are required' });
+        }
+        
+        const imageUrl = await uploadToImageKit(req.files?.image?.[0]);
+
+        const newProduct = { 
+            name, 
+            price, 
+            inStock: inStock === 'true', 
+            categoryId, 
+            description: description || '',
+            image: imageUrl 
+        };
+
+        const [result] = await db.query('INSERT INTO shop_products SET ?', newProduct);
         res.status(201).json({ id: result.insertId, ...newProduct });
-      });
+
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        console.error("Error creating shop product:", error);
+        res.status(500).json({ error: error.message });
     }
-  };
-export const searchShopProducts = (req, res) => {
-    const { q } = req.query;
-  
-    // If the query is missing or empty, return an empty array
-    if (!q) {
-      return res.json([]);
+};
+
+export const searchShopProducts = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.json([]);
+        }
+
+        const sql = `
+            SELECT sp.*, sc.name AS categoryName 
+            FROM shop_products AS sp 
+            LEFT JOIN shop_categories AS sc ON sp.categoryId = sc.id 
+            WHERE sp.name LIKE ? 
+            ORDER BY sp.createdAt DESC
+        `;
+        const params = [`%${q}%`];
+
+        const [results] = await db.query(sql, params);
+        res.json(results);
+
+    } catch (err) {
+        console.error("Error searching shop products:", err);
+        res.status(500).json({ error: err.message });
     }
-  
-    const sql = `
-      SELECT sp.*, sc.name AS categoryName 
-      FROM shop_products AS sp 
-      LEFT JOIN shop_categories AS sc ON sp.categoryId = sc.id 
-      WHERE sp.name LIKE ? 
-      ORDER BY sp.createdAt DESC
-    `;
-  
-    const params = [`%${q}%`];
-  
-    db.query(sql, params, (err, results) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json(results);
-    });
-  };
-  export const getShopProductById = (req, res) => {
-    const { id } = req.params;
-  
-    const query = `
-      SELECT sp.*, sc.name AS categoryName 
-      FROM shop_products AS sp 
-      LEFT JOIN shop_categories AS sc ON sp.categoryId = sc.id 
-      WHERE sp.id = ?
-    `;
-  
-    db.query(query, [id], (err, results) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      if (results.length === 0) {
-        return res.status(404).json({ message: 'Shop product not found' });
-      }
-      res.json(results[0]);
-    });
-  };
-// @desc    Update a shop product
-// @route   PUT /api/shop/products/:id
+};
+
+export const getShopProductById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `
+            SELECT sp.*, sc.name AS categoryName 
+            FROM shop_products AS sp 
+            LEFT JOIN shop_categories AS sc ON sp.categoryId = sc.id 
+            WHERE sp.id = ?
+        `;
+        const [results] = await db.query(query, [id]);
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Shop product not found' });
+        }
+        res.json(results[0]);
+
+    } catch (err) {
+        console.error("Error fetching shop product by ID:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const updateShopProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        // MODIFIED: Destructure description
         const { name, price, inStock, categoryId, description, existingImage } = req.body;
         
         const newImageUrl = await uploadToImageKit(req.files?.image?.[0]);
         
-        // MODIFIED: Add description to the updated product object
         const updatedProduct = { 
             name, 
             price, 
             inStock: inStock === 'true', 
             categoryId, 
-            description: description || '', // Add description
+            description: description || '',
             image: newImageUrl || existingImage 
         };
 
-        db.query('UPDATE shop_products SET ? WHERE id = ?', [updatedProduct, id], (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
-            if (result.affectedRows === 0) return res.status(404).json({ message: 'Product not found' });
-            res.json({ id, ...updatedProduct });
-        });
+        const [result] = await db.query('UPDATE shop_products SET ? WHERE id = ?', [updatedProduct, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.json({ id, ...updatedProduct });
+
     } catch (error) {
+        console.error("Error updating shop product:", error);
         res.status(500).json({ error: error.message });
     }
 };
 
-export const getProductsByCategory = (req, res) => {
-    const { categoryId } = req.params; // Get categoryId from the URL
-  
-    const query = 'SELECT * FROM shop_products WHERE categoryId = ?';
-  
-    db.query(query, [categoryId], (err, results) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      // It's okay if results are empty, it just means no products are in that category yet
-      res.json(results);
-    });
-  };
-// @desc    Delete a shop product
-// @route   DELETE /api/shop/products/:id
-export const deleteShopProduct = (req, res) => {
-  const { id } = req.params;
-  db.query('DELETE FROM shop_products WHERE id = ?', [id], (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.affectedRows === 0) return res.status(404).json({ message: 'Product not found' });
-    res.json({ message: 'Product deleted successfully' });
-  });
+// @desc    Get products by category ID
+// @route   GET /api/products/category/:categoryId (Example route)
+export const getProductsByCategory = async (req, res) => {
+    try {
+        const { categoryId } = req.params;
+        const query = 'SELECT * FROM shop_products WHERE categoryId = ?';
+        const [results] = await db.query(query, [categoryId]);
+        res.json(results);
+    } catch (err) {
+        console.error("Error fetching products by category:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteShopProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [result] = await db.query('DELETE FROM shop_products WHERE id = ?', [id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.json({ message: 'Product deleted successfully' });
+
+    } catch (err) {
+        console.error("Error deleting shop product:", err);
+        res.status(500).json({ error: err.message });
+    }
 };
