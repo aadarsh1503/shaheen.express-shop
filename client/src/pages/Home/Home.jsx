@@ -2,6 +2,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Switch } from '@headlessui/react';
 // <<< CHANGE 1: Import Link from react-router-dom >>>
 import { Link } from 'react-router-dom';
 import { 
@@ -153,23 +154,81 @@ const ShopPage = ({ onAddToCart }) => {
             <span>Home</span><span className="mx-2">/</span><span className="font-medium text-gray-800">Shop</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
-            <div className="flex items-center space-x-2">
-              <input type="checkbox" id="in-stock" checked={showInStockOnly} onChange={() => setShowInStockOnly(!showInStockOnly)} className="h-4 w-4 rounded border-gray-300 text-[#EC2027] focus:ring-[#EC2027]" />
-              <label htmlFor="in-stock" className="text-sm select-none">In Stock Only</label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-transparent border-gray-300 rounded-md focus:ring-[#EC2027] focus:border-[#EC2027] p-2 text-gray-600 text-sm">
-                <option value="default">Default sorting</option>
-                <option value="price-asc">Sort by price: low to high</option>
-                <option value="price-desc">Sort by price: high to low</option>
-                <option value="name-asc">Sort by name: A-Z</option>
-                <option value="name-desc">Sort by name: Z-A</option>
-              </select>
-            </div>
-            <div className="hidden md:flex items-center space-x-3 text-gray-400">
+          <Switch.Group as="div" className="flex items-center space-x-3">
+  {/* The clickable label */}
+  <Switch.Label className="text-sm font-medium text-gray-700 select-none cursor-pointer">
+    In Stock Only
+  </Switch.Label>
+
+  {/* The Toggle Switch itself */}
+  <Switch
+    checked={showInStockOnly}
+    onChange={setShowInStockOnly}
+    className={`
+      relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
+      transition-colors duration-200 ease-in-out
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75
+      ${showInStockOnly ? 'bg-[#EC2027]' : 'bg-gray-200'}
+    `}
+  >
+    <span className="sr-only">Toggle in-stock products</span>
+    
+    {/* The sliding knob */}
+    <span
+      aria-hidden="true"
+      className={`
+        pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0
+        transition duration-200 ease-in-out
+        ${showInStockOnly ? 'translate-x-5' : 'translate-x-0'}
+      `}
+    />
+  </Switch>
+</Switch.Group>
+            <div className="relative inline-block w-64">
+  {/* The actual select element, with default appearance hidden */}
+  <select
+    value={sortBy}
+    onChange={(e) => setSortBy(e.target.value)}
+    className="
+      w-full
+      appearance-none /* This is the magic class to hide default browser styling */
+      cursor-pointer
+      rounded-lg border-2 border-gray-200 bg-white
+      py-2.5 pl-4 pr-10 /* Make space for the arrow */
+      text-sm font-medium text-gray-700
+      transition
+      hover:border-gray-300
+      focus:border-[#EC2027] focus:outline-none focus:ring-2 focus:ring-[#EC2027]/50
+    "
+  >
+    <option value="default">Default sorting</option>
+    <option value="price-asc">Sort by price: low to high</option>
+    <option value="price-desc">Sort by price: high to low</option>
+    <option value="name-asc">Sort by name: A-Z</option>
+    <option value="name-desc">Sort by name: Z-A</option>
+  </select>
+
+  {/* Our custom arrow icon */}
+  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+    <svg
+      className="h-5 w-5 text-gray-400"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  </div>
+</div>
+            {/* <div className="hidden md:flex items-center space-x-3 text-gray-400">
               <LayoutGrid onClick={() => setLayout('grid')} className={`cursor-pointer transition-colors ${layout === 'grid' ? 'text-gray-800' : 'hover:text-gray-800'}`} />
               <Rows3 onClick={() => setLayout('list')} className={`cursor-pointer transition-colors ${layout === 'list' ? 'text-gray-800' : 'hover:text-gray-800'}`} />
-            </div>
+            </div> */}
           </div>
         </div>
         <div className={layout === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12" : "flex flex-col gap-6"}>

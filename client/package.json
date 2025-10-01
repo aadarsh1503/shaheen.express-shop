@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.0.2",
     "@fontsource/poppins": "^5.1.0",
+    "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@react-google-maps/api": "^2.20.3",
     "@studio-freight/lenis": "^1.0.42",
