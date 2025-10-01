@@ -4,6 +4,7 @@ import { FiPlus, FiEdit, FiTrash2, FiBox, FiTag, FiDollarSign, FiFileText, FiUpl
 import * as api from '../services/api'; // Your API service
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react'; 
+import { FaMoneyBillWave } from 'react-icons/fa';
 // --- Main Shop Management Page Component ---
 const ShopManagementPage = () => {
     // Original State
@@ -416,7 +417,7 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
                             <ImageUploader name="image" preview={imagePreview} onChange={handleFileChange} />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                <InputWithIcon Icon={FiTag} type="text" name="name" value={formData.name} onChange={handleTextChange} placeholder="Product Name" required />
-                               <InputWithIcon Icon={FiDollarSign} type="number" name="price" value={formData.price} onChange={handleTextChange} placeholder="Price" step="0.001" required />
+                               <InputWithIcon Icon={FaMoneyBillWave} type="number" name="price" value={formData.price} onChange={handleTextChange} placeholder="Price" step="0.001" required />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>

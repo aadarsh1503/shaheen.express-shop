@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiUploadCloud, FiTag, FiDollarSign, FiFileText } from 'react-icons/fi';
+import { FaMoneyBillWave } from 'react-icons/fa';
 
 // --- The Sexy, Futuristic Loader Component ---
 const SubmittingLoader = () => {
@@ -185,7 +186,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
                 <InputWithIcon Icon={FiTag} type="text" name="name" value={formData.name} onChange={handleTextChange} placeholder="Product Name" required />
-                <InputWithIcon Icon={FiDollarSign} type="number" name="price" value={formData.price} onChange={handleTextChange} placeholder="Price" step="0.001" required />
+                <InputWithIcon Icon={FaMoneyBillWave} type="number" name="price" value={formData.price} onChange={handleTextChange} placeholder="Price" step="0.001" required />
               </div>
 
               <div className="relative mb-6">

@@ -1,26 +1,24 @@
-// components/ShopHero.js (CORRECTED)
+// components/ShopHero.js (Updated to use custom CSS)
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom'; // --- 1. Import Link from react-router-dom ---
+import { Link } from 'react-router-dom';
+
+// --- 1. Import your new CSS file ---
+import './ShopHero.css';
 
 const CategoryLink = ({ id, name }) => (
-  // --- 2. Use the Link component instead of the <a> tag ---
-  // --- 3. Change the 'href' prop to 'to' ---
   <Link 
     to={`/shop/category/${id}`} 
     className="flex items-center justify-center text-center w-32 h-16 
                transition-transform duration-200 hover:scale-105"
   >
-     {/* 2. This div now handles the hover effects and sizing */}
      <div className="group inline-block py-2 transition-transform duration-300 hover:scale-105">
-      {/* The category name */}
       <span className="text-white text-lg font-semibold tracking-wider">{name}</span>
-
-      {/* The animated underline element */}
       <div 
         className="mt-1 h-[2px] w-0 bg-white 
                    transition-all duration-400 ease-in-out 
-                   group-hover:w-full" // This will still be 100% of the text's width
+                   group-hover:w-full"
       />
     </div>
   </Link>
@@ -49,7 +47,10 @@ const ShopHero = () => {
   }, []);
 
   return (
-    <section className="bg-[#EC2027] w-full py-20 px-4">
+    // --- 2. CHANGES ARE HERE ---
+    //    - Removed the Tailwind `bg-[#EC2027]` class.
+    //    - Added our custom `animated-gradient-bg` class.
+    <section className="animated-gradient-bg w-full py-20 px-4">
       <div className="container mx-auto flex flex-col items-center text-center">
         <h1 className="text-white text-5xl font-thin tracking-wide mb-16">Shop</h1>
         <div className="flex flex-wrap items-start justify-center gap-x-6 whitespace-nowrap max-w-7xl">

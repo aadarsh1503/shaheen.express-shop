@@ -1,15 +1,18 @@
+// src/pages/MyAccountPage/MyAccountPage.js (Corrected and Final Version)
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, Package, Heart, Download, MapPin, User, Plus, LogOut, UserCircle2,
-  // 1. Import the new icons for the empty state
-  ShoppingBag, ArrowRight, 
+  ShoppingBag, ArrowRight,
 } from 'lucide-react';
 
 import BillingAddressForm from './BillingAddressForm';
 import AccountDetailsForm from './AccountDetailsForm';
 import { useAuth } from '../Context/AuthContext';
-import { getCurrentUser } from '../frontend-admin/services/api';
+import LogoutAnimation from './LogoutAnimation';
+import ConfirmationModal from './ConfirmationModal'; // Import the confirmation modal
+import { getCurrentUser } from '../frontend-admin/services/api'; // Make sure this path is correct
 
 const MyAccountPage = () => {
   const navigate = useNavigate();
@@ -18,6 +21,8 @@ const MyAccountPage = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userDetails, setUserDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // For the success animation
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // For the confirmation modal
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -28,18 +33,32 @@ const MyAccountPage = () => {
         console.error("Failed to fetch user details:", error);
         if (error.response && error.response.status === 401) {
           logout();
+          navigate('/login-shop'); // Redirect on auth error
         }
       } finally {
         setIsLoading(false);
       }
     };
     fetchUserDetails();
-  }, [logout]);
+  }, [logout, navigate]);
 
-  const handleLogout = () => {
-    logout();
+  // Step 1: User clicks logout, this opens the confirmation modal
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
   };
-  
+
+  // Step 2: User confirms in the modal, this closes it and starts the final animation
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
+    setIsLoggingOut(true);
+  };
+
+  // Step 3: The final animation finishes and calls this to actually log out
+  const performLogout = () => {
+    logout();
+    navigate('/'); // Navigate to the homepage after logging out
+  };
+
   const handleDetailsUpdate = (updatedUserDetails) => {
     setUserDetails(updatedUserDetails);
   };
@@ -64,7 +83,7 @@ const MyAccountPage = () => {
             <p>
               Hello <strong className="font-semibold text-gray-800">{userDisplayName}</strong> (not{' '}
               <strong className="font-semibold text-gray-800">{userDisplayName}</strong>?{' '}
-              <button onClick={handleLogout} className="text-gray-800 hover:underline font-semibold">
+              <button onClick={handleLogoutClick} className="text-gray-800 hover:underline font-semibold">
                 Log out
               </button>
               )
@@ -87,7 +106,6 @@ const MyAccountPage = () => {
           </div>
         );
         
-      // --- 2. THIS IS THE UPDATED SECTION ---
       case 'orders':
         return (
           <div className="text-center bg-gray-50/50 p-10 sm:p-16 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
@@ -131,46 +149,63 @@ const MyAccountPage = () => {
   }
 
   return (
-    <div className="bg-white min-h-screen font-sans text-gray-800">
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-5xl font-light text-center mb-16">My account</h1>
-        <div className="flex flex-col md:flex-row gap-12">
-          <nav className="md:w-1/4 flex-shrink-0">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                <UserCircle2 size={32} className="text-gray-500" />
+    <>
+      {/* Renders the "Are you sure?" modal */}
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleConfirmLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to end your session?"
+        confirmText="Yes, Log Out"
+        cancelText="Stay"
+        icon={LogOut}
+      />
+
+      {/* Renders the "See you soon!" animation after confirmation */}
+      {isLoggingOut && <LogoutAnimation onAnimationComplete={performLogout} />}
+    
+      <div className="bg-white min-h-screen font-sans text-gray-800">
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-5xl font-light text-center mb-16">My account</h1>
+          <div className="flex flex-col md:flex-row gap-12">
+            <nav className="md:w-1/4 flex-shrink-0">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                  <UserCircle2 size={32} className="text-gray-500" />
+                </div>
+                <span className="text-gray-600 truncate">Hello {userDetails?.name || userDetails?.email}</span>
               </div>
-              <span className="text-gray-600 truncate">Hello {userDetails?.name || userDetails?.email}</span>
-            </div>
-            <ul>
-              {navItems.map((item) => (
-                <li key={item.id}>
+              <ul>
+                {navItems.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left ${activeTab === item.id ? 'border-b-2 border-black font-medium' : ''}`}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                ))}
+                <li>
                   <button
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left ${activeTab === item.id ? 'border-b-2 border-black font-medium' : ''}`}
+                    onClick={handleLogoutClick}
+                    className="flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left"
                   >
-                    {item.icon}
-                    <span>{item.label}</span>
+                    <LogOut size={20} />
+                    <span>Log out</span>
                   </button>
                 </li>
-              ))}
-              <li>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left"
-                >
-                  <LogOut size={20} />
-                  <span>Log out</span>
-                </button>
-              </li>
-            </ul>
-          </nav>
-          <main className="md:w-3/4">
-            {renderContent()}
-          </main>
+              </ul>
+            </nav>
+            <main className="md:w-3/4">
+              {renderContent()}
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

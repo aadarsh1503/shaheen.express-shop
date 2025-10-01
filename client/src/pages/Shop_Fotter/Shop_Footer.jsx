@@ -1,5 +1,8 @@
 import React from 'react';
 import { Instagram, Mail, Phone, MapPin, ArrowUp } from 'lucide-react';
+import { FacebookOutlined } from '@ant-design/icons';
+import { FaFacebookF } from 'react-icons/fa';
+import { FaX, FaXTwitter } from 'react-icons/fa6';
 
 // --- Custom Icons ---
 // A simple SVG component for the TikTok icon to match the style.
@@ -77,12 +80,12 @@ const ShopFooter = () => {
             <h3 className="text-xl tracking-wide">Follow us</h3>
             <p className="text-sm">Follow us on social media</p>
             <div className="flex items-center space-x-4">
-              <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
-              <a href="#" aria-label="Email"><Mail size={20} /></a>
-              <a href="#" aria-label="WhatsApp"><WhatsAppIcon className="h-5 w-5" /></a>
-              <a href="#" aria-label="TikTok"><TikTokIcon className="h-5 w-5" /></a>
+              <a href="https://www.instagram.com/alshaheenexpress" aria-label="Instagram"><Instagram size={20} /></a>
+              <a href="https://www.facebook.com/alshaheenexpress" aria-label="facebook"><FaFacebookF size={20} /></a>
+              <a href="https://x.com/shaheenexpress" aria-label="x"><FaXTwitter className="h-5 w-5" /></a>
+              {/* <a href="#" aria-label="TikTok"><TikTokIcon className="h-5 w-5" /></a>
               <a href="#" aria-label="Phone"><Phone size={20} /></a>
-              <a href="#" aria-label="Location"><MapPin size={20} /></a>
+              <a href="#" aria-label="Location"><MapPin size={20} /></a> */}
             </div>
             <p className="text-sm pt-2">SAT - THU 9am - 9pm</p>
           </div>
@@ -104,9 +107,10 @@ const ShopFooter = () => {
         <div className="container mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-4">
           
           {/* Copyright */}
-          <p className="text-xs tracking-wider">
-            2025 Shaheen Express
-          </p>
+          <p className="text-sm tracking-wide text-white font-semibold">
+  © {new Date().getFullYear()} Shaheen Express
+</p>
+
           
           {/* Payment Icons */}
           <div className="flex items-center space-x-2">

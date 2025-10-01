@@ -1,0 +1,32 @@
+/* src/components/ShopHero.css */
+
+/* 
+  1. Define the keyframes for the animation.
+  This animation smoothly moves the background position from left (0%) to right (100%) and back again,
+  creating a seamless, infinite loop.
+*/
+@keyframes gradient-flow {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* 
+    2. Create a class to apply the animated background.
+  */
+  .animated-gradient-bg {
+    /* The gradient itself: A mix of your base color with darker and lighter shades for a rich effect */
+    background: linear-gradient(to right, #c01a20, #EC2027, #ff454c, #EC2027, #c01a20);
+    
+    /* IMPORTANT: Make the background 3x wider than the element so we have something to slide around */
+    background-size: 300% 100%;
+    
+    /* Apply the animation: `gradient-flow` is the name, 15s is the duration, ease-in-out makes it smooth, and infinite makes it loop */
+    animation: gradient-flow 15s ease-in-out infinite;
+  }
