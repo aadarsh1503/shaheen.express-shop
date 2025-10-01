@@ -16,7 +16,7 @@ const AdminSignupPage = () => {
     setSuccess('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/admin/signup', {
+      const response = await axios.post('https://shaheen-express-shop.onrender.com/api/admin/signup', {
         name,
         email,
         password,

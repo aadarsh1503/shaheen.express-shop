@@ -35,7 +35,7 @@ const ShopHero = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/shop/categories');
+        const response = await axios.get('https://shaheen-express-shop.onrender.com/api/shop/categories');
         setCategories(response.data);
         setError(null);
       } catch (err) {
