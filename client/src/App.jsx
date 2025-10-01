@@ -139,7 +139,7 @@ function AppContent() {
     if (token) {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const { data } = await axios.get('http://localhost:5000/api/cart', config);
+        const { data } = await axios.get('https://shaheen-express-shop.onrender.com/api/cart', config);
         setCartItems(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to fetch cart:", error);
@@ -175,7 +175,7 @@ function AppContent() {
     }
     try {
       const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.post('http://localhost:5000/api/cart', {
+      await axios.post('https://shaheen-express-shop.onrender.com/api/cart', {
         productId: productToAdd.id,
         quantity: quantity,
         productTable: productTable,
@@ -193,7 +193,7 @@ function AppContent() {
     if (!token) return;
     try {
       const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.delete(`http://localhost:5000/api/cart/${cartItemId}`, config);
+      await axios.delete(`https://shaheen-express-shop.onrender.com/api/cart/${cartItemId}`, config);
       await fetchCart();
       toast.success("Item removed from cart.");
     } catch (error) {
@@ -212,7 +212,7 @@ function AppContent() {
     }
     try {
       const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.put(`http://localhost:5000/api/cart/${cartItemId}`, { quantity: newQuantity }, config);
+      await axios.put(`https://shaheen-express-shop.onrender.com/api/cart/${cartItemId}`, { quantity: newQuantity }, config);
       await fetchCart();
     } catch (error) {
       console.error("Failed to update quantity:", error);
@@ -224,7 +224,7 @@ function AppContent() {
     if (!token) return;
     try {
       const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.delete('http://localhost:5000/api/cart', config);
+      await axios.delete('https://shaheen-express-shop.onrender.com/api/cart', config);
       await fetchCart();
       toast.info("Your cart has been emptied.");
     } catch (error) {
