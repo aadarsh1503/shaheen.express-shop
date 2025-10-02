@@ -1,12 +1,16 @@
-// src/pages/CartPage/CartPage.js
+// ... (imports remain the same)
 import React, { useMemo } from 'react';
-import { X, Minus, Plus, MapPin, ChevronDown } from 'lucide-react';
+import { X, Minus, Plus, MapPin, ChevronDown, Loader2 } from 'lucide-react'; // Import Loader2
 import { Link } from 'react-router-dom';
+import { useAuth } from '../Context/AuthContext';
 
-const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) => {
-    
+
+// --- NEW: Receive loadingItemId as a prop ---
+const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart, loadingItemId }) => {
+  const { token } = useAuth();
   const [shippingOption, setShippingOption] = React.useState('pickup');
 
+  // ... (useMemo, empty cart check, currency logic remains the same)
   const { subtotal, shippingCost, total, vat } = useMemo(() => {
     const subtotal = cartItems.reduce(
       (acc, item) => acc + parseFloat(item.price) * item.quantity,
@@ -36,46 +40,57 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
     <div className="bg-[#F8F8F8] font-sans py-12 px-4">
       <div className="container mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Cart Items */}
         <div className="lg:col-span-2">
-          {cartItems.map((item) => (
-            // CHANGE #1: Use the truly unique cart_item_id for the key
-            <div key={item.cart_item_id} className="flex items-center gap-4 py-4 border-b border-gray-200">
-              
-              {/* CHANGE #2: Pass the correct cart_item_id to onRemoveItem */}
-              <button onClick={() => onRemoveItem(item.cart_item_id)} className="text-gray-400 hover:text-red-500">
-                <X size={20} />
-              </button>
-              
-              <img src={item.image1} alt={item.name} className="w-20 h-20 object-contain bg-white border border-gray-200" />
-              <div className="flex-grow">
-                <p className="text-gray-800">{item.name}</p>
-                <span className="text-sm text-green-600 border border-green-300 rounded-full px-2 py-0.5 inline-block my-1">
-                  In stock
-                </span>
-                <p className="text-sm text-gray-500">{parseFloat(item.price).toFixed(3)} {item.currency}</p>
-              </div>
-              <div className="flex items-center gap-3 border border-gray-300 px-2 py-1">
+          {cartItems.map((item) => {
+            const uniqueId = token ? item.cart_item_id : item.id;
+            // --- NEW: Check if the current item is the one being updated ---
+            const isLoading = loadingItemId === uniqueId;
+
+            return (
+              // --- Add a subtle opacity change when loading ---
+              <div key={uniqueId} className={`flex items-center gap-4 py-4 border-b border-gray-200 transition-opacity ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
                 
-                {/* CHANGE #3: Pass the correct cart_item_id to onQuantityChange */}
-                <button onClick={() => onQuantityChange(item.cart_item_id, -1)} disabled={item.quantity <= 1}>
-                  <Minus size={16} className={item.quantity <= 1 ? 'text-gray-300' : 'text-gray-600'} />
+                {/* --- Replace remove button with a spinner when loading --- */}
+                <button onClick={() => onRemoveItem(uniqueId)} disabled={isLoading} className="text-gray-400 hover:text-red-500 w-5 h-5 flex items-center justify-center">
+                  {isLoading ? <Loader2 size={20} className="animate-spin" /> : <X size={20} />}
                 </button>
-                
-                <span>{item.quantity}</span>
+              
+                {/* ... (Image and item details remain the same) ... */}
+                <img src={item.image1} alt={item.name} className="w-20 h-20 object-contain bg-white border border-gray-200" />
+                <div className="flex-grow">
+                  <p className="text-gray-800">{item.name}</p>
+                  <span className="text-sm text-green-600 border border-green-300 rounded-full px-2 py-0.5 inline-block my-1">
+                    In stock
+                  </span>
+                  <p className="text-sm text-gray-500">{parseFloat(item.price).toFixed(3)} {item.currency}</p>
+                </div>
 
-                {/* CHANGE #4: Pass the correct cart_item_id to onQuantityChange */}
-                <button onClick={() => onQuantityChange(item.cart_item_id, 1)}>
-                  <Plus size={16} className="text-gray-600" />
-                </button>
+                {/* --- Update the quantity control section --- */}
+                <div className="flex items-center gap-3 border border-gray-300 px-2 py-1">
+                  <button onClick={() => onQuantityChange(uniqueId, -1)} disabled={item.quantity <= 1 || isLoading}>
+                    <Minus size={16} className={item.quantity <= 1 || isLoading ? 'text-gray-300' : 'text-gray-600'} />
+                  </button>
+                  
+                  {/* --- Show a spinner instead of quantity when loading --- */}
+                  {isLoading ? (
+                      <Loader2 size={16} className="animate-spin text-gray-500" />
+                  ) : (
+                      <span>{item.quantity}</span>
+                  )}
 
+                  <button onClick={() => onQuantityChange(uniqueId, 1)} disabled={isLoading}>
+                    <Plus size={16} className={isLoading ? 'text-gray-300' : 'text-gray-600'} />
+                  </button>
+                </div>
+
+                <p className="font-semibold text-gray-800 w-28 text-right">
+                  {(parseFloat(item.price) * item.quantity).toFixed(3)} {item.currency}
+                </p>
               </div>
-              <p className="font-semibold text-gray-800 w-28 text-right">
-                {(parseFloat(item.price) * item.quantity).toFixed(3)} {item.currency}
-              </p>
-            </div>
-          ))}
+            )
+          })}
 
+          {/* ... (Rest of the component remains the same) ... */}
           <div className="flex justify-between items-center mt-6">
             <button onClick={onEmptyCart} className="bg-gray-200 text-gray-700 px-5 py-2 hover:bg-gray-300 transition-colors">
               Empty Cart
@@ -87,7 +102,7 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
           </div>
         </div>
 
-        {/* Right Column: Cart Totals (No changes needed here) */}
+        {/* ... (Right Column with Cart Totals remains the same) ... */}
         <div className="bg-white border border-gray-200 p-6 h-fit">
           <h2 className="text-2xl font-light text-gray-800 mb-4 pb-4 border-b">Cart totals</h2>
           
@@ -135,7 +150,6 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart }) =>
             Proceed to checkout
           </Link>
         </div>
-
       </div>
     </div>
   );

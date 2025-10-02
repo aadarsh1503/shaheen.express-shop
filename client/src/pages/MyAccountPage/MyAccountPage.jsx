@@ -67,10 +67,10 @@ const MyAccountPage = () => {
     { id: 'dashboard', icon: <LayoutGrid size={20} />, label: 'Dashboard' },
     { id: 'orders', icon: <Package size={20} />, label: 'Orders' },
     { id: 'wishlist', icon: <Heart size={20} />, label: 'Wishlist' },
-    { id: 'downloads', icon: <Download size={20} />, label: 'Downloads' },
+    // { id: 'downloads', icon: <Download size={20} />, label: 'Downloads' },
     { id: 'addresses', icon: <MapPin size={20} />, label: 'Addresses' },
     { id: 'account-details', icon: <User size={20} />, label: 'Account details' },
-    { id: 'appointments', icon: <Plus size={20} />, label: 'Appointments' },
+    // { id: 'appointments', icon: <Plus size={20} />, label: 'Appointments' },
   ];
 
   const renderContent = () => {

@@ -1,4 +1,4 @@
-// App.js (With Protected Routes)
+// App.js (Corrected and Complete)
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate, Navigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from './pages/Context/AuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// ... (all your component imports remain the same)
+// Component Imports
 import Hero from './components/Hero/Hero';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
@@ -49,68 +49,71 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage/ResetPasswordPage';
 import ProductDetail from './pages/ProductDetail/ProductDetail';
 import ShopManagementPage from './pages/frontend-admin/AdminPage/ShopManagementPage';
+import { CartProvider , useCart} from './pages/CartPage/CartContext';
+// Correct Context Imports
+
 
 
 // ========================================================================
-// ========= START: NEW PROTECTED ROUTE COMPONENTS ========================
+// ========= PROTECTED ROUTE COMPONENTS ===================================
 // ========================================================================
 
-// This component protects routes that only a logged-in regular user should access.
 function UserProtectedRoute({ children }) {
-  const { token } = useAuth();
+
+  const { token, loading } = useAuth();
+
+
+  if (loading) {
+
+    return <GlobalLoader />; 
+  }
+
+
   if (!token) {
-    // If no token, redirect to the customer login page
     return <Navigate to="/login-shop" replace />;
   }
+
+
   return children;
 }
 
-// This component protects routes that only a logged-in admin should access.
 function AdminProtectedRoute({ children }) {
-  const { adminToken } = useAuth(); // Assuming your AuthContext provides this
+  const { adminToken, loading } = useAuth();
+
+  if (loading) {
+    return <GlobalLoader />;
+  }
+
   if (!adminToken) {
-    // If no admin token, redirect to the admin login page
     return <Navigate to="/admin/login" replace />;
   }
   return children;
 }
 
-// ========================================================================
-// ========= END: NEW PROTECTED ROUTE COMPONENTS ==========================
-// ========================================================================
 
+// ========================================================================
+// ========= UTILITY & LAYOUT COMPONENTS ==================================
+// ========================================================================
 
 function ScrollToTop() {
   const { pathname } = useLocation();
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-
   return null;
 }
 
-// LayoutWrapper remains unchanged
 function LayoutWrapper({ children, cartItems, onRemoveItem, subtotal, currency }) {
   const location = useLocation();
-
-  const isShopPage = location.pathname.startsWith("/shop");
   const isAdminLogin = location.pathname.startsWith("/admin");
-  const isLoginPage = location.pathname.startsWith("/login-shop");
-  const isRegisterPage = location.pathname.startsWith("/register-shop");
-  const isCartPage = location.pathname === "/cart";
-  const isCheckoutPage = location.pathname === "/checkout";
-  const isMyAccount = location.pathname === "/my-account";
-  const isPrivacy = location.pathname === "/privacy-store";
-  const isUserData = location.pathname === "/userData-Protection";
-  const isTerms = location.pathname === "/terms-policy";
-  const isReturn = location.pathname === "/return-refund";
-
   if (isAdminLogin) {
     return <>{children}</>;
   }
 
-  const useShopLayout = isShopPage || isLoginPage || isRegisterPage || isTerms || isCartPage || isReturn || isCheckoutPage || isMyAccount || isPrivacy || isUserData;
+  const useShopLayout = [
+    "/shop", "/login-shop", "/register-shop", "/cart", "/checkout", "/my-account",
+    "/privacy-store", "/userData-Protection", "/terms-policy", "/return-refund"
+  ].some(path => location.pathname.startsWith(path));
 
   return (
     <>
@@ -128,111 +131,168 @@ function LayoutWrapper({ children, cartItems, onRemoveItem, subtotal, currency }
   );
 }
 
+// ========================================================================
+// ========= MAIN APP LOGIC ===============================================
+// ========================================================================
+
 function AppContent() {
-  const [cartItems, setCartItems] = useState([]);
-  const [shippingOption, setShippingOption] = useState('pickup');
-  const navigate = useNavigate();
+  // === STATE MANAGEMENT ===
   const { token } = useAuth();
+  const { 
+    cartItems: localCartItems, 
+    addToCart: addToLocalCart,
+    removeFromCart: removeFromLocalCart,
+    updateQuantity: updateLocalQuantity,
+    emptyCart: emptyLocalCart,
+  } = useCart();
+  const [serverCartItems, setServerCartItems] = useState([]);
+  
+  // loadingItemId is no longer needed for optimistic updates, so it's removed.
+  
+  const cartItems = token ? serverCartItems : localCartItems;
 
-  // --- All cart logic functions (fetchCart, handleAddToCart, etc.) remain unchanged ---
-  const fetchCart = async () => {
-    if (token) {
-      try {
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const { data } = await axios.get('https://shaheen-express-shop.onrender.com/api/cart', config);
-        setCartItems(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch cart:", error);
-        setCartItems([]);
-      }
-    } else {
-      setCartItems([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchCart();
-  }, [token]);
-
-  const { subtotal, shippingCost, total, vat, currency } = useMemo(() => {
-    const subtotalCalc = cartItems.reduce((acc, item) => acc + parseFloat(item.price) * item.quantity, 0);
-    const shippingCostCalc = shippingOption === 'delivery' ? 2.200 : 0;
-    const totalCalc = subtotalCalc + shippingCostCalc;
-    const vatCalc = totalCalc * 0.10;
-    const currencyLabel = cartItems.length > 0 ? cartItems[0].currency : 'BHD';
-    return { subtotal: subtotalCalc, shippingCost: shippingCostCalc, total: totalCalc, vat: vatCalc, currency: currencyLabel };
-  }, [cartItems, shippingOption]);
-
-  const handleAddToCart = async (productToAdd, quantity = 1, productTable) => {
-    if (!token) {
-      navigate('/login-shop');
-      return;
-    }
-    if (!productTable) {
-      console.error("Developer Error: 'productTable' argument is missing in handleAddToCart call.");
-      toast.error("An unexpected error occurred.");
-      return;
-    }
-    try {
-      const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.post('https://shaheen-express-shop.onrender.com/api/cart', {
-        productId: productToAdd.id,
-        quantity: quantity,
-        productTable: productTable,
-      }, config);
-      await fetchCart();
-      toast.success("Item added to cart!");
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to add item to cart";
-      console.error(errorMessage, error);
-      toast.error(`Error: ${errorMessage}`);
-    }
-  };
-
-  const handleRemoveItem = async (cartItemId) => {
+  // === SERVER CART LOGIC (remains the same) ===
+  const fetchServerCart = async () => {
     if (!token) return;
     try {
-      const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.delete(`https://shaheen-express-shop.onrender.com/api/cart/${cartItemId}`, config);
-      await fetchCart();
-      toast.success("Item removed from cart.");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const { data } = await axios.get('https://shaheen-express-shop.onrender.com/api/cart', config);
+      setServerCartItems(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Failed to remove item:", error);
-      toast.error("Could not remove item. Please try again.");
+      console.error("Failed to fetch server cart:", error);
+      setServerCartItems([]);
+    }
+  };
+  
+  useEffect(() => {
+    fetchServerCart();
+  }, [token]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (!localStorage.getItem('cart')) {
+        emptyLocalCart(); 
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [emptyLocalCart]);
+
+  // === UNIFIED CART HANDLERS (OPTIMISTIC VERSION) ===
+  const handleAddToCart = async (product, quantity, productTable) => {
+    // This logic is fine as it is.
+    if (token) {
+        if (!productTable) {
+          toast.error("An unexpected error occurred.");
+          return;
+        }
+        try {
+          const config = { headers: { 'Authorization': `Bearer ${token}` } };
+          await axios.post('https://shaheen-express-shop.onrender.com/api/cart', {
+            productId: product.id,
+            quantity: quantity,
+            productTable: productTable,
+          }, config);
+          await fetchServerCart();
+          toast.success(`${product.name} added to cart!`);
+        } catch (error) {
+          toast.error("Failed to add item to cart.");
+        }
+      } else {
+        addToLocalCart(product, productTable);
+        toast.success(`${product.name} added to cart!`);
+      }
+  };
+
+  const handleRemoveItem = async (itemId) => {
+    if (token) {
+      // 1. Save the current state in case we need to revert
+      const originalCart = [...serverCartItems];
+      
+      // 2. Update the UI immediately (Optimistic Update)
+      const updatedCart = serverCartItems.filter(item => item.cart_item_id !== itemId);
+      setServerCartItems(updatedCart);
+      
+      try {
+        // 3. Send the request to the server in the background
+        const config = { headers: { 'Authorization': `Bearer ${token}` } };
+        await axios.delete(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, config);
+        // No toast on success, the UI change is the feedback
+      } catch (error) {
+        // 4. If it fails, show an error and revert the UI
+        toast.error("Could not remove item. Please try again.");
+        setServerCartItems(originalCart); // Revert to the old state
+      }
+    } else {
+      // Local cart is already synchronous, so it's instant
+      removeFromLocalCart(itemId);
     }
   };
 
-  const handleQuantityChange = async (cartItemId, amount) => {
-    const item = cartItems.find(i => i.cart_item_id === cartItemId);
-    if (!token || !item) return;
-    const newQuantity = item.quantity + amount;
-    if (newQuantity < 1) {
-      handleRemoveItem(cartItemId);
-      return;
-    }
-    try {
-      const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.put(`https://shaheen-express-shop.onrender.com/api/cart/${cartItemId}`, { quantity: newQuantity }, config);
-      await fetchCart();
-    } catch (error) {
-      console.error("Failed to update quantity:", error);
-      toast.error("Could not update quantity.");
+  const handleQuantityChange = async (itemId, delta) => {
+    if (token) {
+        // 1. Save the original state
+        const originalCart = [...serverCartItems];
+        const itemToUpdate = originalCart.find(i => i.cart_item_id === itemId);
+        if (!itemToUpdate) return;
+        
+        const newQuantity = itemToUpdate.quantity + delta;
+        
+        // 2. Optimistically update the UI
+        if (newQuantity < 1) {
+            // If quantity is less than 1, we remove it
+            const updatedCart = originalCart.filter(i => i.cart_item_id !== itemId);
+            setServerCartItems(updatedCart);
+        } else {
+            // Otherwise, we update the quantity
+            const updatedCart = originalCart.map(i => 
+                i.cart_item_id === itemId ? { ...i, quantity: newQuantity } : i
+            );
+            setServerCartItems(updatedCart);
+        }
+
+        try {
+            // 3. Send the request to the server
+            const config = { headers: { 'Authorization': `Bearer ${token}` } };
+            if (newQuantity < 1) {
+                await axios.delete(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, config);
+            } else {
+                await axios.put(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, { quantity: newQuantity }, config);
+            }
+        } catch (error) {
+            // 4. If it fails, revert the UI and show error
+            toast.error("Could not update quantity.");
+            setServerCartItems(originalCart);
+        }
+    } else {
+        updateLocalQuantity(itemId, delta);
     }
   };
 
   const handleEmptyCart = async () => {
-    if (!token) return;
-    try {
-      const config = { headers: { 'Authorization': `Bearer ${token}` } };
-      await axios.delete('https://shaheen-express-shop.onrender.com/api/cart', config);
-      await fetchCart();
-      toast.info("Your cart has been emptied.");
-    } catch (error) {
-      console.error("Failed to empty cart:", error);
-      toast.error("Could not empty the cart.");
-    }
+    if (token) {
+        const originalCart = [...serverCartItems];
+        setServerCartItems([]); // Optimistic update
+        try {
+          const config = { headers: { 'Authorization': `Bearer ${token}` } };
+          await axios.delete('https://shaheen-express-shop.onrender.com/api/cart', config);
+          toast.info("Cart has been emptied.");
+        } catch (error) {
+          toast.error("Could not empty the cart.");
+          setServerCartItems(originalCart); // Revert on failure
+        }
+      } else {
+        emptyLocalCart();
+      }
   };
+  
+  const { subtotal, currency } = useMemo(() => {
+    const subtotalCalc = cartItems.reduce((acc, item) => acc + parseFloat(item.price) * item.quantity, 0);
+    const currencyLabel = cartItems.length > 0 ? cartItems[0].currency : 'BHD';
+    return { subtotal: subtotalCalc, currency: currencyLabel };
+  }, [cartItems]);
 
+  // === RENDER LOGIC ===
   return (
     <LayoutWrapper
       cartItems={cartItems}
@@ -240,8 +300,9 @@ function AppContent() {
       subtotal={subtotal}
       currency={currency}
     >
+      {/* THIS IS THE FULL, CORRECTED LIST OF ROUTES */}
       <Routes>
-        {/* --- Public Routes (Anyone can see these) --- */}
+        {/* --- Public Routes --- */}
         <Route path="/" element={<Hero />} />
         <Route path="/shop" element={<ShopPage onAddToCart={handleAddToCart} />} />
         <Route path="/shop/product/:id" element={<ProductDetail onAddToCart={handleAddToCart} />} />
@@ -250,21 +311,22 @@ function AppContent() {
         <Route path="/register-shop" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-        
-        {/* Other public pages */}
         <Route path="/faq" element={<FAQ />} />
         <Route path="/aboutus" element={<AboutUs />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/t&c" element={<TANDC />} />
-        {/* ... other public routes */}
 
-
-        {/* --- User Protected Routes (Must be logged in as a customer) --- */}
+        {/* --- User Protected Routes --- */}
         <Route
           path="/cart"
           element={
             <UserProtectedRoute>
-              <CartPage cartItems={cartItems} onQuantityChange={handleQuantityChange} onRemoveItem={handleRemoveItem} onEmptyCart={handleEmptyCart} />
+              <CartPage 
+                cartItems={cartItems} 
+                onQuantityChange={handleQuantityChange} 
+                onRemoveItem={handleRemoveItem} 
+                onEmptyCart={handleEmptyCart} 
+              />
             </UserProtectedRoute>
           }
         />
@@ -272,59 +334,25 @@ function AppContent() {
           path="/checkout"
           element={
             <UserProtectedRoute>
-              <CheckoutPage cartItems={cartItems} subtotal={subtotal} shippingCost={shippingCost} total={total} vat={vat} currency={currency} onEmptyCart={handleEmptyCart} />
+              {/* Note: CheckoutPage also needs calculations passed as props */}
+              <CheckoutPage cartItems={cartItems} subtotal={subtotal} onEmptyCart={handleEmptyCart} currency={currency} />
             </UserProtectedRoute>
           }
         />
         <Route
           path="/my-account"
-          element={
-            <UserProtectedRoute>
-              <MyAccountPage />
-            </UserProtectedRoute>
-          }
+          element={<UserProtectedRoute><MyAccountPage /></UserProtectedRoute>}
         />
 
-
-        {/* --- Admin Public Routes (Login/Signup for Admin) --- */}
+        {/* --- Admin Public & Protected Routes --- */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin/signup" element={<AdminSignupPage />} />
-        
-        {/* --- Admin Protected Routes (Must be logged in as an Admin) --- */}
-        <Route
-          path="/admin/products"
-          element={
-            <AdminProtectedRoute>
-              <AdminPage />
-            </AdminProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/categories"
-          element={
-            <AdminProtectedRoute>
-              <CategoryAdmin />
-            </AdminProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/Product"
-          element={
-            <AdminProtectedRoute>
-              <ProductAdmin />
-            </AdminProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/Product-shop"
-          element={
-            <AdminProtectedRoute>
-              <ShopManagementPage />
-            </AdminProtectedRoute>
-          }
-        />
+        <Route path="/admin/products" element={<AdminProtectedRoute><AdminPage /></AdminProtectedRoute>} />
+        <Route path="/admin/categories" element={<AdminProtectedRoute><CategoryAdmin /></AdminProtectedRoute>} />
+        <Route path="/admin/Product" element={<AdminProtectedRoute><ProductAdmin /></AdminProtectedRoute>} />
+        <Route path="/admin/Product-shop" element={<AdminProtectedRoute><ShopManagementPage /></AdminProtectedRoute>} />
 
-        {/* ... Your remaining policy and other routes ... */}
+        {/* --- Other/Policy Routes --- */}
         <Route path="/tracking-Form" element={<TrackingForm />} />
         <Route path="/privacy" element={<Task />} />
         <Route path="/manPower" element={<ManPower />} />
@@ -342,20 +370,26 @@ function AppContent() {
   );
 }
 
+// ========================================================================
+// ========= ROOT APP COMPONENT ===========================================
+// ========================================================================
+
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <DirectionProvider>
-          <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} />
-          <div className='lg:hidden hidden'>
-            <LanguageSwitcher />
-          </div>
-          <ChatWidget />
-          <ScrollToTop />
-          <GlobalLoader />
-          <AppContent />
-        </DirectionProvider>
+        <CartProvider>
+          <DirectionProvider>
+            <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} />
+            <div className='lg:hidden hidden'>
+              <LanguageSwitcher />
+            </div>
+            <ChatWidget />
+            <ScrollToTop />
+            <GlobalLoader />
+            <AppContent />
+          </DirectionProvider>
+        </CartProvider> 
       </AuthProvider>
     </Router>
   );

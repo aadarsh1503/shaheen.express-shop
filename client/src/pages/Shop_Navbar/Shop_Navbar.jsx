@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, User, ShoppingCart, X } from 'lucide-react';
+import { Menu, Search, User, ShoppingCart, X, ChevronRight, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import MegaMenu from './MegaMenu';
+// import MegaMenu from './MegaMenu'; // This component is defined below
 import { useAuth } from '../Context/AuthContext';
 import SearchOverlay from './SearchOverlay';
+import LanguageSwitcher from '../../components/LanguageSwticher/LanguageSwitcher';
 
 // --- SHOPPING CART SIDEBAR (No changes needed here) ---
 const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtotal, currency }) => {
@@ -53,14 +54,13 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
                     <p className="text-sm font-medium text-gray-800 leading-tight">{item.name}</p>
                     <p className="text-xs text-gray-500 mt-1">{item.quantity} × {(parseFloat(item.price)).toFixed(3)} {currency}</p>
                   </div>
-                  {/* THIS BUTTON NOW CORRECTLY TRIGGERS THE API CALL VIA THE PROP */}
                   <button 
-    onClick={() => onRemoveItem(item.cart_item_id)} // Change from item.id to item.cart_item_id
-    className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2" 
-    aria-label={`Remove ${item.name}`}
-  >
-    <X size={16} />
-  </button>
+                    onClick={() => onRemoveItem(item.cart_item_id)}
+                    className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2" 
+                    aria-label={`Remove ${item.name}`}
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -127,13 +127,17 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
     <>
       <header className="w-full sticky top-0 z-30 transform-gpu">
         {isAtTop && (
-          <div className="bg-[#EC2027] text-white text-center py-2 px-4 text-sm font-medium">
-            <p>
-              <a href="#" className="hover:underline">
-                Shaheen Express اضغط هنا للتحويل لشاهين إكسبرس السعودية
-              </a>
-            </p>
+          <div className="bg-[#EC2027] text-white py-2 px-4 text-sm font-medium flex items-center justify-between">
+          <p className="flex-1 text-center">
+            <a href="#" className="hover:underline ml-0 lg:ml-24">
+              Shaheen Express اضغط هنا للتحويل لشاهين إكسبرس السعودية
+            </a>
+          </p>
+          <div className="">
+            <LanguageSwitcher />
           </div>
+        </div>
+        
         )}
         <nav className={`relative transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${isAtTop ? 'bg-white shadow-sm' : 'bg-white/50 backdrop-blur-md shadow-md'}`}>
           <div className="container mx-auto px-6 py-6 flex justify-between items-center">
@@ -187,5 +191,144 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
     </>
   );
 };
+
+
+// =====================================================================
+// --- MEGAMENU COMPONENT (Updated with Wishlist "Coming Soon") ---
+// =====================================================================
+const menuData = {
+  CATEGORIES: [
+    {
+      title: 'PACKAGING SUPPLIES',
+      links: ['Cardboard Boxes', 'Shipping Mailers', 'Mailing Tubes', 'Envelopes', 'Custom Packaging', 'Poly Bags', 'Bubble Mailers'],
+    },
+    {
+      title: 'SHIPPING MATERIALS',
+      links: ['Packing Tape', 'Labels & Stickers', 'Bubble & Foam Wrap', 'Packing Peanuts', 'Cushioning', 'Stretch Film', 'Strapping'],
+    },
+    {
+      title: 'WAREHOUSE & HANDLING',
+      links: ['Pallets & Skids', 'Hand Trucks & Dollies', 'Scales', 'Utility Knives & Cutters', 'Markers & Pens', 'Inventory Tags', 'Industrial Bins'],
+    },
+  ],
+};
+
+
+const MegaMenu = ({ isOpen, onClose }) => {
+  const [activeMenu, setActiveMenu] = useState(null);
+
+  return (
+    <div
+      className={`fixed inset-0 bg-[#EC2027] text-white z-50 flex
+                 transition-transform duration-500 ease-in-out
+                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+    >
+      {/* Thin Icon Sidebar */}
+      <div className="w-20 bg-black bg-opacity-10 flex-shrink-0 flex flex-col items-center py-8 space-y-10">
+        <button
+          onClick={onClose}
+          className="hover:opacity-75 transition-opacity"
+          aria-label="Close menu"
+        >
+          <X size={28} />
+        </button>
+        <a
+          href="/login-shop"
+          className="hover:opacity-75 transition-opacity"
+          aria-label="My Account"
+          onMouseEnter={() => setActiveMenu(null)}
+        >
+          <User size={28} />
+        </a>
+        {/* --- CHANGE: Wishlist icon now triggers the 'Coming Soon' message --- */}
+        <a
+          href="#"
+          onClick={(e) => e.preventDefault()}
+          onMouseEnter={() => setActiveMenu('WISHLIST')}
+          className="hover:opacity-75 transition-opacity"
+          aria-label="Wishlist"
+        >
+          <Heart size={28} />
+        </a>
+      </div>
+
+      {/* Main Menu Area */}
+      <div 
+        className="flex-grow flex overflow-y-auto"
+        onMouseLeave={() => setActiveMenu(null)}
+      >
+        {/* Primary Navigation */}
+        <div className="w-64 flex-shrink-0 p-12 font-thin tracking-widest">
+          <ul className="space-y-6 text-lg">
+            <li onMouseEnter={() => setActiveMenu(null)}><a href='/shop' className="hover:text-gray-200">HOME</a></li>
+            <li onMouseEnter={() => setActiveMenu(null)}><a href='/shop' className="hover:text-gray-200 pb-1 border-b-2 border-white">SHOP</a></li>
+            
+            <li onMouseEnter={() => setActiveMenu('OFFERS')}>
+              <a href="#" className={`hover:text-gray-200 ${activeMenu === 'OFFERS' ? 'pb-1 border-b-2 border-white' : ''}`}>
+                OFFERS
+              </a>
+            </li>
+            
+            <li onMouseEnter={() => setActiveMenu('CATEGORIES')}>
+              <a href="#" className={`flex justify-between items-center hover:text-gray-200 ${activeMenu === 'CATEGORIES' ? 'pb-1 border-b-2 border-white' : ''}`}>
+                <span>CATEGORIES</span>
+                <ChevronRight size={18} />
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        {/* Dynamic Content Area */}
+        <div className="flex-grow p-12 pr-20">
+            {activeMenu === 'CATEGORIES' && (
+                <div className="grid grid-cols-3 gap-x-12 gap-y-8">
+                    {menuData.CATEGORIES.map((column) => (
+                        <div key={column.title}>
+                            <h3 className="font-semibold tracking-widest mb-4 text-sm">{column.title}</h3>
+                            <ul className="space-y-3 font-light tracking-wider text-xs">
+                                {column.links.map((link) => (
+                                    <li key={link}><a href="#" className="hover:text-gray-200">{link}</a></li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {activeMenu === 'OFFERS' && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="bg-black bg-opacity-20 p-8 rounded-lg shadow-lg">
+                        <h3 className="text-2xl font-semibold tracking-wider mb-2">Exclusive Offers</h3>
+                        <p className="text-gray-200 font-light tracking-wide">
+                            There are currently no special offers available.
+                        </p>
+                        <p className="text-gray-300 font-light tracking-wide mt-1 text-sm">
+                            Please check back soon!
+                        </p>
+                    </div>
+                </div>
+            )}
+            
+            {/* --- CHANGE: New 'Coming Soon' display for Wishlist --- */}
+            {activeMenu === 'WISHLIST' && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="bg-black bg-opacity-20 p-8 rounded-lg shadow-lg">
+                        <Heart size={48} className="mx-auto mb-4 text-white animate-pulse" />
+                        <h3 className="text-2xl font-semibold tracking-wider mb-2">My Wishlist</h3>
+                        <p className="text-xl text-gray-200 font-light tracking-wide">
+                            Coming Soon!
+                        </p>
+                        <p className="text-gray-300 font-light tracking-wide mt-2 text-sm max-w-xs mx-auto">
+                           We're crafting a special place for you to save and track all your favorite items.
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 export default Shop_Navbar;

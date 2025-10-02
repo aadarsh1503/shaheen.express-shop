@@ -79,10 +79,10 @@ const ShopFooter = () => {
           <div className="space-y-4">
             <h3 className="text-xl tracking-wide">Follow us</h3>
             <p className="text-sm">Follow us on social media</p>
-            <div className="flex items-center space-x-4">
-              <a href="https://www.instagram.com/alshaheenexpress" aria-label="Instagram"><Instagram size={20} /></a>
-              <a href="https://www.facebook.com/alshaheenexpress" aria-label="facebook"><FaFacebookF size={20} /></a>
-              <a href="https://x.com/shaheenexpress" aria-label="x"><FaXTwitter className="h-5 w-5" /></a>
+            <div  className="flex items-center space-x-4">
+              <a href="https://www.instagram.com/alshaheenexpress" className='ml-4' aria-label="Instagram"><Instagram size={20} /></a>
+              <a href="https://www.facebook.com/alshaheenexpress" className='mr-10'  aria-label="facebook"><FaFacebookF size={20} /></a>
+              <a href="https://x.com/shaheenexpress"  aria-label="x"><FaXTwitter size={20} /></a>
               {/* <a href="#" aria-label="TikTok"><TikTokIcon className="h-5 w-5" /></a>
               <a href="#" aria-label="Phone"><Phone size={20} /></a>
               <a href="#" aria-label="Location"><MapPin size={20} /></a> */}

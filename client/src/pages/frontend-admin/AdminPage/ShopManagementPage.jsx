@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // Added useRef
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiEdit, FiTrash2, FiBox, FiTag, FiDollarSign, FiFileText, FiUploadCloud, FiX, FiSearch } from 'react-icons/fi';
-import * as api from '../services/api'; // Your API service
+import * as api from '../services/api'; 
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react'; 
 import { FaMoneyBillWave } from 'react-icons/fa';
+
 // --- Main Shop Management Page Component ---
 const ShopManagementPage = () => {
     // Original State
@@ -15,11 +16,15 @@ const ShopManagementPage = () => {
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const navigate = useNavigate();
+
     // State for Filtering and Sorting
     const [searchTerm, setSearchTerm] = useState('');
     const [stockFilter, setStockFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [sortOrder, setSortOrder] = useState('newest');
+
+    // **NEW**: State for managing multiple selections
+    const [selectedProducts, setSelectedProducts] = useState([]);
 
     const fetchData = useCallback(async () => {
         setIsProductsLoading(true);
@@ -66,7 +71,13 @@ const ShopManagementPage = () => {
         return result;
     }, [products, searchTerm, stockFilter, categoryFilter, sortOrder]);
 
-    // --- FIXED HANDLERS ---
+    useEffect(() => {
+        // Clear selection if filters change to avoid confusion
+        setSelectedProducts([]);
+    }, [searchTerm, stockFilter, categoryFilter, sortOrder]);
+
+
+    // --- HANDLERS ---
     const handleOpenProductModal = (product = null) => {
         setEditingProduct(product);
         setIsProductModalOpen(true);
@@ -84,7 +95,7 @@ const ShopManagementPage = () => {
             } else {
                 await api.createShopProduct(formData);
             }
-            await fetchData(); // Refresh all data
+            await fetchData();
             handleCloseProductModal();
         } catch (error) {
             console.error("Failed to save product:", error);
@@ -96,7 +107,7 @@ const ShopManagementPage = () => {
         if (window.confirm("Are you sure you want to delete this product?")) {
             try {
                 await api.deleteShopProduct(productId);
-                await fetchData(); // Refresh all data
+                await fetchData();
             } catch (error) {
                 console.error("Failed to delete product:", error);
                 alert("Error: Could not delete product.");
@@ -104,34 +115,81 @@ const ShopManagementPage = () => {
         }
     };
 
+    // **NEW**: Handlers for multiple selection
+    const handleProductSelection = (productId) => {
+        setSelectedProducts(prevSelected =>
+            prevSelected.includes(productId)
+                ? prevSelected.filter(id => id !== productId)
+                : [...prevSelected, productId]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedProducts.length === filteredAndSortedProducts.length) {
+            setSelectedProducts([]);
+        } else {
+            setSelectedProducts(filteredAndSortedProducts.map(p => p.id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const count = selectedProducts.length;
+        if (count > 0 && window.confirm(`Are you sure you want to delete the ${count} selected products?`)) {
+            try {
+                // This assumes your API service has a function for bulk deletion.
+                // You might need to implement this in `services/api.js`.
+                // e.g., await api.deleteMultipleShopProducts({ ids: selectedProducts });
+                console.log("Deleting products with IDs:", selectedProducts);
+                // For demonstration, we'll simulate deletion by calling single delete in a loop.
+                // In a real app, a single API call is much better.
+                await Promise.all(selectedProducts.map(id => api.deleteShopProduct(id)));
+
+                await fetchData();
+                setSelectedProducts([]); // Clear selection after deletion
+            } catch (error) {
+                console.error("Failed to delete selected products:", error);
+                alert("Error: Could not delete the selected products.");
+            }
+        }
+    };
+
+
     return (
         <div className="bg-gray-50 min-h-screen pt-10">
             <main className="container mx-auto p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-    
-    {/* Left Side: Grouped Back Button and Title */}
-    <div className="flex items-center gap-x-3">
-        <button
-            onClick={() => navigate(-1)} // This is the magic for going back
-            aria-label="Go back"
-            className="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-            <ArrowLeft className="h-6 w-6" />
-        </button>
-        <h1 className="text-3xl font-bold text-gray-900">
-            Shop Management
-        </h1>
-    </div>
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                    <div className="flex items-center gap-x-3">
+                        <button
+                            onClick={() => navigate(-1)}
+                            aria-label="Go back"
+                            className="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            <ArrowLeft className="h-6 w-6" />
+                        </button>
+                        <h1 className="text-3xl font-bold text-gray-900">
+                            Shop Management
+                        </h1>
+                    </div>
 
-    {/* Right Side: Action Button */}
-    <button 
-        onClick={() => handleOpenProductModal()} 
-        className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105"
-    >
-        <FiPlus className="mr-2" size={20} />
-        Add New Product
-    </button>
-</div>
+                    {/* **MODIFIED**: Conditional action button */}
+                    {selectedProducts.length > 0 ? (
+                         <button 
+                            onClick={handleBulkDelete} 
+                            className="flex items-center bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                        >
+                            <FiTrash2 className="mr-2" size={20} />
+                            Delete ({selectedProducts.length}) Selected
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => handleOpenProductModal()} 
+                            className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                        >
+                            <FiPlus className="mr-2" size={20} />
+                            Add New Product
+                        </button>
+                    )}
+                </div>
                 
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-8 border border-gray-100">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -189,6 +247,10 @@ const ShopManagementPage = () => {
                                     products={filteredAndSortedProducts}
                                     onEdit={handleOpenProductModal}
                                     onDelete={handleProductDelete}
+                                    // **NEW**: Pass selection props
+                                    selectedProducts={selectedProducts}
+                                    onProductSelect={handleProductSelection}
+                                    onSelectAll={handleSelectAll}
                                 />
                              )}
                         </div>
@@ -215,14 +277,23 @@ const ShopManagementPage = () => {
 };
 
 // --- Child components ---
-const ProductList = ({ products, onEdit, onDelete }) => {
+// **MODIFIED**: ProductList now handles selections
+const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSelect, onSelectAll }) => {
+    const headerCheckboxRef = useRef(null);
+
+    const isAllSelected = products.length > 0 && selectedProducts.length === products.length;
+
+    useEffect(() => {
+        if (headerCheckboxRef.current) {
+            headerCheckboxRef.current.indeterminate = selectedProducts.length > 0 && !isAllSelected;
+        }
+    }, [selectedProducts, isAllSelected]);
+
     if (products.length === 0) {
         return (
             <div className="text-center py-10">
                 <h3 className="text-lg font-semibold text-gray-700">No Products Found</h3>
-                <p className="text-gray-500 mt-2">
-                    No products match your current filters. Try adjusting your search or filter criteria.
-                </p>
+                <p className="text-gray-500 mt-2">No products match your current filters.</p>
             </div>
         );
     }
@@ -231,6 +302,15 @@ const ProductList = ({ products, onEdit, onDelete }) => {
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
+                        <th className="px-4 py-3 text-left">
+                           <input
+                                type="checkbox"
+                                ref={headerCheckboxRef}
+                                checked={isAllSelected}
+                                onChange={onSelectAll}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -239,34 +319,52 @@ const ProductList = ({ products, onEdit, onDelete }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                      <AnimatePresence>
-                    {products.map(product => (
-                        <motion.tr key={product.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10">
-                                        <img className="h-10 w-10 rounded-md object-cover" src={product.image} alt={product.name} />
+                    {products.map(product => {
+                        const isSelected = selectedProducts.includes(product.id);
+                        return (
+                            <motion.tr 
+                                key={product.id} 
+                                layout 
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }} 
+                                exit={{ opacity: 0 }} 
+                                className={`transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            >
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => onProductSelect(product.id)}
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                        <div className="flex-shrink-0 h-10 w-10">
+                                            <img className="h-10 w-10 rounded-md object-cover" src={product.image} alt={product.name} />
+                                        </div>
+                                        <div className="ml-4">
+                                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                        </div>
                                     </div>
-                                    <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{Number(product.price).toFixed(3)} BHD</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    {product.inStock ? (
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">In Stock</span>
+                                    ) : (
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div className="flex justify-end items-center space-x-2">
+                                        <button onClick={() => onEdit(product)} className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-full transition-colors"><FiEdit size={16} /></button>
+                                        <button onClick={() => onDelete(product.id)} className="p-2 text-red-600 hover:text-red-900 hover:bg-red-100 rounded-full transition-colors"><FiTrash2 size={16} /></button>
                                     </div>
-                                </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{Number(product.price).toFixed(3)} BHD</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                {product.inStock ? (
-                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">In Stock</span>
-                                ) : (
-                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>
-                                )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div className="flex justify-end items-center space-x-2">
-                                    <button onClick={() => onEdit(product)} className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-full transition-colors"><FiEdit size={16} /></button>
-                                    <button onClick={() => onDelete(product.id)} className="p-2 text-red-600 hover:text-red-900 hover:bg-red-100 rounded-full transition-colors"><FiTrash2 size={16} /></button>
-                                </div>
-                            </td>
-                        </motion.tr>
-                    ))}
+                                </td>
+                            </motion.tr>
+                        )
+                    })}
                      </AnimatePresence>
                 </tbody>
             </table>
@@ -414,7 +512,7 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
                             <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={24} /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto space-y-4">
-                            <ImageUploader name="image" preview={imagePreview} onChange={handleFileChange} />
+                            <ImageUploader name="image" preview={imagePreview} onChange={handleFileChange} required={!productToEdit} />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                <InputWithIcon Icon={FiTag} type="text" name="name" value={formData.name} onChange={handleTextChange} placeholder="Product Name" required />
                                <InputWithIcon Icon={FaMoneyBillWave} type="number" name="price" value={formData.price} onChange={handleTextChange} placeholder="Price" step="0.001" required />
@@ -426,7 +524,7 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
                                     {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                                 </select>
                             </div>
-                            <InputWithIcon Icon={FiFileText} name="description" value={formData.description} as="textarea" onChange={handleTextChange} placeholder="Product details..." rows="3" />
+                            <InputWithIcon Icon={FiFileText} name="description" value={formData.description} as="textarea" onChange={handleTextChange} placeholder="Product details..." rows="3" required />
                             <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                 <label className="font-semibold text-gray-700">In Stock</label>
                                 <label className="relative inline-flex items-center cursor-pointer">
@@ -462,12 +560,12 @@ const SubmittingLoader = () => {
   );
 };
 
-const ImageUploader = ({ name, preview, onChange }) => (
+const ImageUploader = ({ name, preview, onChange, required }) => (
     <div>
       <label className="block text-sm font-semibold text-gray-600 mb-2">Product Image</label>
       <label htmlFor={name} className="relative cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg h-40 flex justify-center items-center hover:border-blue-500 transition-colors">
         {preview ? <img src={preview} alt="Preview" className="h-full w-full object-contain rounded-lg p-2" /> : <div className="text-center text-gray-400"><FiUploadCloud size={32} className="mx-auto" /><p className="mt-2 text-sm">Click to upload</p></div>}
-        <input id={name} name={name} type="file" accept="image/*" onChange={onChange} className="sr-only" />
+        <input id={name} name={name} type="file" accept="image/*" onChange={onChange} className="sr-only" required={required} />
       </label>
     </div>
   );
@@ -481,6 +579,5 @@ const InputWithIcon = ({ Icon, as = "input", ...props }) => {
         </div>
     );
 };
-
 
 export default ShopManagementPage;

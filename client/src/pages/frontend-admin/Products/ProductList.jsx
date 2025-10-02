@@ -1,23 +1,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ProductCard from './ProductCard'; // We will create this new component
+import ProductCard from './ProductCard';
 
-const ProductList = ({ products, onEdit, onDelete }) => {
-  // Animation variants for the container to orchestrate children animations
+const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSelect }) => {
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1, // Each card will appear 0.1s after the previous one
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   if (!products || products.length === 0) {
     return (
       <div className="text-center py-10">
-        <p className="text-gray-500 text-lg">No products found. Add one to get started!</p>
+        <p className="text-gray-500 text-lg">No products found.</p>
       </div>
     );
   }
@@ -36,6 +30,9 @@ const ProductList = ({ products, onEdit, onDelete }) => {
             product={product}
             onEdit={onEdit}
             onDelete={onDelete}
+            // **NEW**: Pass selection props down to each card
+            isSelected={selectedProducts.includes(product.id)}
+            onSelect={onProductSelect}
           />
         ))}
       </AnimatePresence>

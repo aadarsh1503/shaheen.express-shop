@@ -1,53 +1,98 @@
-// src/pages/Context/AuthContext.js (Corrected)
+// src/pages/Context/AuthContext.js (Final and Improved Version)
 
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
+export const useAuth = () => useContext(AuthContext);
+
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
-  const [user, setUser] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('token'));
+    const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  const login = (newToken) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
+    const API_URL = 'https://shaheen-express-shop.onrender.com/api';
+
+    const mergeLocalCartWithServer = async (userToken) => {
+        try {
+            const localCartData = localStorage.getItem('cart');
+            const localCartItems = localCartData ? JSON.parse(localCartData) : [];
+
+            if (localCartItems.length === 0) {
+                return;
+            }
+
+            console.log('Merging local cart with server...', localCartItems);
+
+            const mergePromises = localCartItems.map(item => {
+                const config = { headers: { 'Authorization': `Bearer ${userToken}` } };
+                return axios.post(`${API_URL}/cart`, {
+                    productId: item.id,
+                    quantity: item.quantity,
+                    productTable: item.productTable,
+                }, config);
+            });
+
+            await Promise.allSettled(mergePromises);
+            localStorage.removeItem('cart');
+            window.dispatchEvent(new Event('storage'));
+        } catch (error) {
+            console.error("Failed to merge cart:", error);
+        }
+    };
+
+    const login = async (email, password) => {
+        const { data } = await axios.post(`${API_URL}/auth/login`, { email, password });
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        
+        await mergeLocalCartWithServer(data.token);
+        
+        const config = { headers: { Authorization: `Bearer ${data.token}` } };
+        const { data: userData } = await axios.get(`${API_URL}/auth/me`, config);
+        setUser(userData);
+    };
+    
+    const logout = () => {
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+    };
+
+     useEffect(() => {
+        const fetchUser = async () => {
+            if (token) {
+                try {
+                    const config = { headers: { Authorization: `Bearer ${token}` } };
+                    const { data } = await axios.get(`${API_URL}/auth/me`, config);
+                    setUser(data);
+                } catch (error) {
+                    console.error("Session expired or invalid token", error);
+                    logout();
+                }
+            }
+            setLoading(false);
+        };
+        fetchUser();
+    }, [token]);
+
+    // --- YEH CHANGE HAI (THIS IS THE CHANGE) ---
+    const value = { 
+      token, 
+      adminToken, 
+      user, 
+      login, 
+      logout, 
+      loading, 
+      isAuthenticated: !!token
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-  };
-
-  const loginAdmin = (newAdminToken) => {
-    localStorage.setItem('adminToken', newAdminToken);
-    setAdminToken(newAdminToken);
-  };
-
-  const logoutAdmin = () => {
-    localStorage.removeItem('adminToken');
-    setAdminToken(null);
-  };
-  
-  // The `value` object that will be available to consumers
-  const value = {
-    token,
-    user,
-    setUser,
-    login,
-    logout,
-    isAuthenticated: !!token, 
-
-    adminToken,
-    loginAdmin,
-    logoutAdmin,
-    isAdminAuthenticated: !!adminToken,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  return useContext(AuthContext);
+  return (
+      <AuthContext.Provider value={value}>
+         
+          {children}
+      </AuthContext.Provider>
+  );
 };

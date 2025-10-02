@@ -26,8 +26,8 @@ const ProductCard = ({ product, onAddToCart, layout }) => {
   
   return (
     // <<< CHANGE 3: Wrap the entire card content in a Link >>>
-    <Link to={`/shop/product/${product.id}`} className="text-center group block">
-      <div className="relative overflow-hidden border-b-2 border-[#EC2027] group-hover:border-[#EC2027] transition-colors duration-300 pb-2">
+    <Link to={`/shop/product/${product.id}`}  className="text-center group block">
+      <div dir='ltr' className="relative overflow-hidden border-b-2 border-[#EC2027] group-hover:border-[#EC2027] transition-colors duration-300 pb-2">
         <div className="relative w-full aspect-square bg-white flex items-center justify-center">
           <img
             src={product.image1}
@@ -52,11 +52,20 @@ const ProductCard = ({ product, onAddToCart, layout }) => {
                     <ShoppingCart size={20} />
                 </button>
                 <div className="border-l border-gray-200"></div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); /* Logic for Quick View here */}}
-                  className="p-3 text-gray-600 hover:bg-gray-100 hover:text-black transition-colors" title="Quick View">
-                    <Expand size={20} />
-                </button>
+                <Link to={`/shop/product/${product.id}`}>
+  <button 
+    onClick={(e) => { 
+      e.stopPropagation(); 
+     
+      /* Logic for Quick View here */ 
+    }}
+    className="p-3 text-gray-600 hover:bg-gray-100 hover:text-black transition-colors" 
+    title="Quick View"
+  >
+    <Expand size={20} />
+  </button>
+</Link>
+
             </div>
           </div>
         </div>
@@ -146,12 +155,12 @@ const ShopPage = ({ onAddToCart }) => {
 
   // The rest of the ShopPage component remains the same...
   return (
-    <div className="font-sans bg-gray-50 min-h-screen">
+    <div dir='ltr' className="font-sans bg-gray-50 min-h-screen">
       <ShopHero />
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 text-gray-600 border-b pb-4">
           <div className="text-sm mb-4 md:mb-0">
-            <span>Home</span><span className="mx-2">/</span><span className="font-medium text-gray-800">Shop</span>
+            <a href='/'>Home</a><span className="mx-2">/</span><span className="font-medium text-gray-800">Shop</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
           <Switch.Group as="div" className="flex items-center space-x-3">

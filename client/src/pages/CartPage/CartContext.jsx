@@ -22,13 +22,18 @@ export const CartProvider = ({ children }) => {
 
   // Save to localStorage whenever cartItems changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
+    try {
+      localStorage.setItem('cart', JSON.stringify(cartItems));
+    } catch (error) {
+      console.error("Could not save cart data to localStorage", error);
+    }
   }, [cartItems]);
 
   // --- Cart Management Functions ---
 
   // Function to add an item (or update quantity if it exists)
-  const addToCart = (product) => {
+  // CHANGE: Accept productTable to know the product's origin
+  const addToCart = (product, productTable) => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
@@ -37,14 +42,15 @@ export const CartProvider = ({ children }) => {
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       } else {
-        // If new item, add it to the cart with quantity 1
-        return [...prevItems, { ...product, quantity: 1 }];
+        // If new item, add it with quantity 1 and the productTable
+        return [...prevItems, { ...product, quantity: 1, productTable }];
       }
     });
   };
   
   // Function to remove an item completely
   const removeFromCart = (itemId) => {
+    // Note: In local cart, we use product.id, not cart_item_id
     setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
   };
   
@@ -55,7 +61,7 @@ export const CartProvider = ({ children }) => {
         item.id === itemId
           ? { ...item, quantity: Math.max(1, item.quantity + delta) } // Ensure quantity is at least 1
           : item
-      )
+      ).filter(item => item.quantity > 0) // Also remove if quantity becomes 0 or less
     );
   };
 

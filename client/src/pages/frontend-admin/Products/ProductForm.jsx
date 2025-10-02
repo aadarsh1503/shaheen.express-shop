@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiUploadCloud, FiTag, FiDollarSign, FiFileText } from 'react-icons/fi';
+import { FiX, FiUploadCloud, FiTag, FiFileText } from 'react-icons/fi';
 import { FaMoneyBillWave } from 'react-icons/fa';
 
 // --- The Sexy, Futuristic Loader Component ---
@@ -73,7 +73,6 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
           name: productToEdit.name || '',
           price: productToEdit.price || '',
           currency: productToEdit.currency || 'BHD',
-          // THE BUG FIX: Explicitly cast `inStock` to a pure boolean
           inStock: !!productToEdit.inStock,
           description: productToEdit.description || '',
         });
@@ -113,10 +112,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
     }
   };
 
-  // MODIFIED: `handleSubmit` is now async to manage loading state
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true); // --- Turn loader ON ---
+    setIsSubmitting(true);
 
     const data = new FormData();
     Object.keys(formData).forEach(key => data.append(key, formData[key]));
@@ -128,13 +126,11 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
     }
     
     try {
-      await onSubmit(data); // This calls the function in AdminPage and waits for it to finish
+      await onSubmit(data);
     } catch (error) {
       console.error("Submission failed in ProductForm:", error);
-      // You could show an error toast to the user here
     } finally {
-      // This block runs whether the submission succeeded or failed
-      setIsSubmitting(false); // --- Turn loader OFF ---
+      setIsSubmitting(false);
     }
   };
 
@@ -160,11 +156,10 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
           onClick={onClose}
         >
           <motion.div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative" // --- ADD 'relative' for loader positioning
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative"
             variants={modalVariants}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* --- NEW: Loader Overlay --- */}
             <AnimatePresence>
               {isSubmitting && <SubmittingLoader />}
             </AnimatePresence>
@@ -180,8 +175,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
             {/* -- Form -- */}
             <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <ImageUploader name="image1" preview={image1Preview} onChange={handleFileChange} />
-                <ImageUploader name="image2" preview={image2Preview} onChange={handleFileChange} />
+                {/* MODIFIED: Added 'required' prop for new products */}
+                <ImageUploader name="image1" preview={image1Preview} onChange={handleFileChange} required={!productToEdit} />
+                <ImageUploader name="image2" preview={image2Preview} onChange={handleFileChange} required={!productToEdit} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
@@ -198,6 +194,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
                   className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow bg-gray-50"
                   rows="4"
                   placeholder="Enter product details..."
+                  required // MODIFIED: Added required attribute
                 />
               </div>
 
@@ -209,22 +206,24 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
                 </label>
               </div>
               
-              {/* -- Form Actions with disabled state -- */}
               <div className="flex justify-end mt-8">
                 <button 
                   type="button" 
                   onClick={onClose} 
-                  disabled={isSubmitting} // Disable when submitting
+                  disabled={isSubmitting}
                   className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2.5 px-6 rounded-lg mr-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isSubmitting} // Disable when submitting
+                  disabled={isSubmitting}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                 >
-                  {productToEdit ? 'Updating...' : 'Adding...'}
+                  {/* MODIFIED: Improved button text logic */}
+                  {isSubmitting
+                    ? (productToEdit ? 'Updating...' : 'Adding...')
+                    : (productToEdit ? 'Update Product' : 'Add Product')}
                 </button>
               </div>
             </form>
@@ -236,7 +235,8 @@ const ProductForm = ({ isOpen, onClose, onSubmit, productToEdit }) => {
 };
 
 // --- Helper Components for a cleaner Form ---
-const ImageUploader = ({ name, preview, onChange }) => (
+// MODIFIED: Accepts and passes a 'required' prop
+const ImageUploader = ({ name, preview, onChange, required }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-semibold text-gray-600 mb-2 capitalize">{name.replace('image', 'Image ')}</label>
     <label htmlFor={name} className="relative cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg h-40 flex justify-center items-center hover:border-blue-500 transition-colors">
@@ -248,7 +248,15 @@ const ImageUploader = ({ name, preview, onChange }) => (
           <p className="mt-2 text-sm">Click to upload</p>
         </div>
       )}
-      <input id={name} name={name} type="file" accept="image/*" onChange={onChange} className="sr-only" />
+      <input 
+        id={name} 
+        name={name} 
+        type="file" 
+        accept="image/*" 
+        onChange={onChange} 
+        className="sr-only"
+        required={required} // MODIFIED: Added required prop
+      />
     </label>
   </div>
 );
