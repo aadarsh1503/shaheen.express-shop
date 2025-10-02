@@ -222,74 +222,100 @@ const createPasswordResetEmail = (userName, resetURL) => {
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        
+        console.log("Forgot Password Request for Email:", email);
+
         const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        console.log("User Query Result:", users);
 
         if (users.length === 0) {
-            // For security, always send a success message, even if user doesn't exist.
+            console.log("No user found with this email:", email);
             return res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
         const user = users[0];
+        console.log("User Found:", user);
 
         const resetToken = crypto.randomBytes(20).toString('hex');
+        console.log("Generated Reset Token:", resetToken);
+
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        console.log("Hashed Token:", hashedToken);
+
         const tokenExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+        console.log("Token Expiry Time:", tokenExpiry);
 
         await pool.query(
             'UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?',
             [hashedToken, tokenExpiry, user.id]
         );
+        console.log("Database Updated with Reset Token and Expiry");
 
         const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+        console.log("Reset URL:", resetURL);
+
         const emailHtml = createPasswordResetEmail(user.name, resetURL);
+        console.log("Email HTML Created");
 
         await sendEmail({
             email: user.email,
             subject: 'Password Reset Request',
             message: emailHtml 
         });
+        console.log("Reset Email Sent to:", user.email);
 
         res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
 
     } catch (err) {
-        // Log the error internally but send a generic message to the user
+        console.error("Error in forgotPassword:", err);
         res.status(500).json({ message: "An error occurred. Please try again later." });
     }
 };
 
-// --- RESET PASSWORD FUNCTION (CLEANED) ---
+
+// --- RESET PASSWORD FUNCTION ---
 export const resetPassword = async (req, res) => {
     try {
         const resetToken = req.params.token;
+        console.log("Reset Password Request with Token:", resetToken);
+
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        console.log("Hashed Token for Verification:", hashedToken);
 
         const [users] = await pool.query(
             'SELECT * FROM users WHERE reset_password_token = ? AND reset_password_expires > NOW()',
             [hashedToken]
         );
+        console.log("User Lookup with Token Result:", users);
 
         if (users.length === 0) {
+            console.log("Invalid or Expired Token");
             return res.status(400).json({ message: 'Token is invalid or has expired.' });
         }
 
         const user = users[0];
+        console.log("User Found for Reset:", user);
+
         const { password } = req.body;
+        console.log("New Password Provided:", password ? "Yes" : "No");
 
         if (!password) {
+            console.log("Password not provided in request");
             return res.status(400).json({ message: 'Password is required.' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log("New Password Hashed Successfully");
 
         await pool.query(
             'UPDATE users SET password = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE id = ?',
             [hashedPassword, user.id]
         );
+        console.log("Password Updated in Database for User ID:", user.id);
 
         res.status(200).json({ message: 'Password has been reset successfully!' });
 
     } catch (err) {
+        console.error("Error in resetPassword:", err);
         res.status(500).json({ message: 'Server error during password reset.' });
     }
 };
