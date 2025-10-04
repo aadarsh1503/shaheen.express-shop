@@ -162,17 +162,30 @@ function AdminPage() {
 
   const handleSubmit = async (formData) => {
     try {
+      console.log('🟢 handleSubmit triggered with data:', formData);
+  
       if (productToEdit) {
+        console.log('✏️ Editing existing product with ID:', productToEdit.id);
         await api.updateProduct(productToEdit.id, formData);
+        console.log('✅ Product updated successfully');
       } else {
+        console.log('➕ Creating a new product...');
         await api.createProduct(formData);
+        console.log('✅ New product created successfully');
       }
+  
+      console.log('🔄 Refreshing product list...');
       fetchProducts();
+  
+      console.log('❎ Closing modal...');
       handleCloseModal();
+  
     } catch (error) {
-      console.error("Failed to save product:", error);
+      console.error('❌ Failed to save product:', error);
+      console.log('⚠️ Error details:', error.response?.data || error.message);
     }
   };
+  
 
   const handleDelete = (product) => {
     setItemToDelete(product);
