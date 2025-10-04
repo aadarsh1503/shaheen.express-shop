@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = 'http://localhost:5000/api';
+    const API_URL = 'https://shaheen-express-shop.onrender.com/api';
 
     const mergeLocalCartWithServer = async (userToken) => {
         try {
