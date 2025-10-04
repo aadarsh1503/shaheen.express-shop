@@ -54,7 +54,15 @@ export const AuthProvider = ({ children }) => {
         const { data: userData } = await axios.get(`${API_URL}/auth/me`, config);
         setUser(userData);
     };
+    const loginAdmin = (token) => {
+        localStorage.setItem('adminToken', token);
+        setAdminToken(token);
+      };
     
+      const logoutAdmin = () => {
+        localStorage.removeItem('adminToken');
+        setAdminToken(null);
+      };
     const logout = () => {
         localStorage.removeItem('token');
         setToken(null);
@@ -86,7 +94,9 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       loading, 
-      isAuthenticated: !!token
+      isAuthenticated: !!token,
+      loginAdmin,      
+      logoutAdmin   
   };
 
   return (
