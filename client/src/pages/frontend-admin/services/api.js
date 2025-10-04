@@ -37,7 +37,7 @@ const adminApiClient = axios.create({
 
 adminApiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminToken'); // This will be our backup
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -46,6 +46,8 @@ adminApiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// +++ ADD THIS EXPORT LINE +++
+export { adminApiClient }; 
 
 // ===================================================================
 //  AUTHENTICATION & USER PROFILE FUNCTIONS

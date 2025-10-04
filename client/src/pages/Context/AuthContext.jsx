@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import { adminApiClient } from '../frontend-admin/services/api';
 
 const AuthContext = createContext(null);
 
@@ -68,7 +69,12 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setUser(null);
     };
-
+    useEffect(() => {
+        const storedAdminToken = localStorage.getItem('adminToken');
+        if (storedAdminToken) {
+            adminApiClient.defaults.headers.common['Authorization'] = `Bearer ${storedAdminToken}`;
+        }
+    }, []);
      useEffect(() => {
         const fetchUser = async () => {
             if (token) {
