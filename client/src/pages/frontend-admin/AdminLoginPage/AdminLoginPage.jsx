@@ -10,7 +10,7 @@ const AdminLoginPage = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { loginAdmin } = useAuth();
+  const { login: loginAdmin } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
