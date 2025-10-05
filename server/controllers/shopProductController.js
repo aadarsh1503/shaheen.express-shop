@@ -1,9 +1,9 @@
-// controllers/shopProductController.js (COMPLETE AND REFACTORED)
+// controllers/shopProductController.js (COMPLETE AND REFACTORED WITH STOCK)
 
 import db from '../config/db.js';
 import imagekit from '../config/imagekit.js';
 
-// Helper function to upload to ImageKit (this was already correct)
+// Helper function to upload to ImageKit
 const uploadToImageKit = async (file) => {
   if (!file) return null;
   try {
@@ -51,20 +51,25 @@ export const getShopProductsByCategory = async (req, res) => {
 
 export const createShopProduct = async (req, res) => {
     try {
-        const { name, price, inStock, categoryId, description } = req.body;
-        if (!name || !price || !categoryId) {
-            return res.status(400).json({ message: 'Name, price, and category are required' });
+        // MODIFIED: Added stockQuantity
+        const { name, price, categoryId, description, stockQuantity } = req.body;
+        if (!name || !price || !categoryId || stockQuantity === undefined) {
+            return res.status(400).json({ message: 'Name, price, category, and stock quantity are required' });
         }
         
         const imageUrl = await uploadToImageKit(req.files?.image?.[0]);
 
+        const stock = parseInt(stockQuantity, 10);
         const newProduct = { 
             name, 
             price, 
-            inStock: inStock === 'true', 
+            // MODIFIED: inStock is now derived from stockQuantity
+            inStock: stock > 0, 
             categoryId, 
             description: description || '',
-            image: imageUrl 
+            image: imageUrl,
+            // MODIFIED: Added stockQuantity field
+            stockQuantity: stock
         };
 
         const [result] = await db.query('INSERT INTO shop_products SET ?', newProduct);
@@ -126,17 +131,22 @@ export const getShopProductById = async (req, res) => {
 export const updateShopProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, price, inStock, categoryId, description, existingImage } = req.body;
+        // MODIFIED: Added stockQuantity
+        const { name, price, categoryId, description, existingImage, stockQuantity } = req.body;
         
         const newImageUrl = await uploadToImageKit(req.files?.image?.[0]);
         
+        const stock = parseInt(stockQuantity, 10);
         const updatedProduct = { 
             name, 
             price, 
-            inStock: inStock === 'true', 
+            // MODIFIED: inStock is now derived from stockQuantity
+            inStock: stock > 0, 
             categoryId, 
             description: description || '',
-            image: newImageUrl || existingImage 
+            image: newImageUrl || existingImage,
+            // MODIFIED: Added stockQuantity field
+            stockQuantity: stock
         };
 
         const [result] = await db.query('UPDATE shop_products SET ? WHERE id = ?', [updatedProduct, id]);
@@ -152,8 +162,6 @@ export const updateShopProduct = async (req, res) => {
     }
 };
 
-// @desc    Get products by category ID
-// @route   GET /api/products/category/:categoryId (Example route)
 export const getProductsByCategory = async (req, res) => {
     try {
         const { categoryId } = req.params;

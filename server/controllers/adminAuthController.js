@@ -46,23 +46,31 @@ export const adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        console.log('🟢 Admin Login Attempt:', { email });
+
         if (!email || !password) {
+            console.log('⚠️ Missing fields:', { email, passwordProvided: !!password });
             return res.status(400).json({ message: 'Please enter all fields' });
         }
         
         // Step 1: Find the admin by email
         const [admins] = await pool.query('SELECT * FROM admins WHERE email = ?', [email]);
+        console.log('📄 Admins found:', admins.length);
 
         if (admins.length === 0) {
+            console.log('❌ No admin found with email:', email);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         const admin = admins[0];
+        console.log('✅ Admin record found:', { id: admin.id, email: admin.email });
 
         // Step 2: Compare the provided password with the stored hash
         const isMatch = await bcrypt.compare(password, admin.password);
+        console.log('🔐 Password match result:', isMatch);
 
         if (!isMatch) {
+            console.log('❌ Invalid password for admin:', email);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -70,21 +78,22 @@ export const adminLogin = async (req, res) => {
         const payload = {
             user: {
                 id: admin.id,
-                role: 'admin' // Add the admin role
+                role: 'admin'
             },
         };
 
-        // jwt.sign is synchronous by default when a callback is not provided
         const token = jwt.sign(
             payload,
-            process.env.JWT_SECRET2, 
+            process.env.JWT_SECRET2,
             { expiresIn: '1d' }
         );
-        
+
+        console.log('🎫 JWT Token created successfully for admin ID:', admin.id);
+
         res.json({ token });
 
     } catch (err) {
-        console.error('Admin Login Error:', err);
+        console.error('🔥 Admin Login Error:', err);
         res.status(500).json({ message: 'Server error during admin login' });
     }
 };
