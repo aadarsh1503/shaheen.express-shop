@@ -180,7 +180,20 @@ function AppContent() {
 
   // === UNIFIED CART HANDLERS (OPTIMISTIC VERSION) ===
   const handleAddToCart = async (product, quantity, productTable) => {
-    // This logic is fine as it is.
+    // Ensure product has stock info
+    if (product.stockQuantity === undefined) {
+      toast.error("Sorry, stock information is unavailable for this item.");
+      return;
+    }
+
+    // Check if adding the item would exceed stock limit
+    const existingItem = cartItems.find(item => item.id === product.id);
+    if (existingItem && existingItem.quantity >= product.stockQuantity) {
+      toast.warn(`That's all we have! Max quantity for ${product.name} is ${product.stockQuantity}.`);
+      return; // Stop the function here
+    }
+
+    // If stock is available, proceed with adding to cart
     if (token) {
         if (!productTable) {
           toast.error("An unexpected error occurred.");
@@ -190,17 +203,22 @@ function AppContent() {
           const config = { headers: { 'Authorization': `Bearer ${token}` } };
           await axios.post('https://shaheen-express-shop.onrender.com/api/cart', {
             productId: product.id,
-            quantity: quantity,
+            quantity: quantity, // The quantity is usually 1 when clicking the button
             productTable: productTable,
           }, config);
           await fetchServerCart();
           toast.success(`${product.name} added to cart!`);
         } catch (error) {
-          toast.error("Failed to add item to cart.");
+          // MODIFIED: Handle specific error from backend if stock is exceeded
+          if (error.response && error.response.data.message === 'Cannot add more than available stock') {
+              toast.error(`You've reached the stock limit for ${product.name}!`);
+          } else {
+              toast.error("Failed to add item to cart.");
+          }
         }
       } else {
+        // The updated addToLocalCart from CartContext will handle the logic and toasts
         addToLocalCart(product, productTable);
-        toast.success(`${product.name} added to cart!`);
       }
   };
 
@@ -231,41 +249,49 @@ function AppContent() {
 
   const handleQuantityChange = async (itemId, delta) => {
     if (token) {
-        // 1. Save the original state
-        const originalCart = [...serverCartItems];
+      setServerCartItems(prevCart => {
+        const originalCart = [...prevCart];
         const itemToUpdate = originalCart.find(i => i.cart_item_id === itemId);
-        if (!itemToUpdate) return;
+
+        if (!itemToUpdate) return originalCart; 
+
+        let newQuantity = itemToUpdate.quantity + delta;
+
+        // THIS IS THE CRITICAL VALIDATION LOGIC
+        if (newQuantity > itemToUpdate.stockQuantity) {
+          toast.warn(`Max quantity reached! Only ${itemToUpdate.stockQuantity} available.`);
+          newQuantity = itemToUpdate.stockQuantity; // Cap the quantity
+        }
         
-        const newQuantity = itemToUpdate.quantity + delta;
+        newQuantity = Math.max(1, newQuantity);
         
-        // 2. Optimistically update the UI
-        if (newQuantity < 1) {
-            // If quantity is less than 1, we remove it
-            const updatedCart = originalCart.filter(i => i.cart_item_id !== itemId);
-            setServerCartItems(updatedCart);
-        } else {
-            // Otherwise, we update the quantity
-            const updatedCart = originalCart.map(i => 
-                i.cart_item_id === itemId ? { ...i, quantity: newQuantity } : i
-            );
-            setServerCartItems(updatedCart);
+        // If no actual change, don't do anything
+        if (newQuantity === itemToUpdate.quantity) {
+            return originalCart;
         }
 
-        try {
-            // 3. Send the request to the server
-            const config = { headers: { 'Authorization': `Bearer ${token}` } };
-            if (newQuantity < 1) {
-                await axios.delete(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, config);
+        // Send API request in the background with the validated quantity
+        const config = { headers: { 'Authorization': `Bearer ${token}` } };
+        axios.put(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, { quantity: newQuantity }, config)
+          .catch(error => {
+            // Handle specific error from our updated backend
+            if (error.response && error.response.data.message) {
+                 toast.error(error.response.data.message);
             } else {
-                await axios.put(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, { quantity: newQuantity }, config);
+                 toast.error("Could not update quantity.");
             }
-        } catch (error) {
-            // 4. If it fails, revert the UI and show error
-            toast.error("Could not update quantity.");
-            setServerCartItems(originalCart);
-        }
+            // On failure, revert the whole cart to its original state before this attempt
+            setServerCartItems(originalCart); 
+          });
+
+        // Return the new state for the optimistic update
+        return originalCart.map(i => 
+            i.cart_item_id === itemId ? { ...i, quantity: newQuantity } : i
+        );
+      });
     } else {
-        updateLocalQuantity(itemId, delta);
+      // For local cart, delegate to the context's updated function
+      updateLocalQuantity(itemId, delta);
     }
   };
 
@@ -305,7 +331,10 @@ function AppContent() {
         {/* --- Public Routes --- */}
         <Route path="/" element={<Hero />} />
         <Route path="/shop" element={<ShopPage onAddToCart={handleAddToCart} />} />
-        <Route path="/shop/product/:id" element={<ProductDetail onAddToCart={handleAddToCart} />} />
+        <Route 
+          path="/shop/product/:id" 
+          element={<ProductDetail onAddToCart={handleAddToCart} cartItems={cartItems} />} 
+        />
         <Route path="/shop/category/:categoryId" element={<CategoryProductsPage onAddToCart={handleAddToCart} />} />
         <Route path="/login-shop" element={<LoginPage />} />
         <Route path="/register-shop" element={<RegisterPage />} />

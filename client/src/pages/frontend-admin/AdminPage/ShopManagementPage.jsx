@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // Added useRef
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiEdit, FiTrash2, FiBox, FiTag, FiDollarSign, FiFileText, FiUploadCloud, FiX, FiSearch } from 'react-icons/fi';
 import * as api from '../services/api'; 
@@ -8,7 +8,7 @@ import { FaMoneyBillWave } from 'react-icons/fa';
 
 // --- Main Shop Management Page Component ---
 const ShopManagementPage = () => {
-    // Original State
+    // ... (All state and functions from the original file remain the same until ProductList)
     const [products, setProducts] = useState([]);
     const [isProductsLoading, setIsProductsLoading] = useState(true);
     const [categories, setCategories] = useState([]);
@@ -16,14 +16,10 @@ const ShopManagementPage = () => {
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const navigate = useNavigate();
-
-    // State for Filtering and Sorting
     const [searchTerm, setSearchTerm] = useState('');
     const [stockFilter, setStockFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [sortOrder, setSortOrder] = useState('newest');
-
-    // **NEW**: State for managing multiple selections
     const [selectedProducts, setSelectedProducts] = useState([]);
 
     const fetchData = useCallback(async () => {
@@ -62,8 +58,8 @@ const ShopManagementPage = () => {
             result = result.filter(product => product.categoryId === parseInt(categoryFilter));
         }
         switch (sortOrder) {
-            case 'newest': result.sort((a, b) => b.id - a.id); break;
-            case 'oldest': result.sort((a, b) => a.id - b.id); break;
+            case 'newest': result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); break;
+            case 'oldest': result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
             case 'a-z': result.sort((a, b) => a.name.localeCompare(b.name)); break;
             case 'z-a': result.sort((a, b) => b.name.localeCompare(a.name)); break;
             default: break;
@@ -72,12 +68,9 @@ const ShopManagementPage = () => {
     }, [products, searchTerm, stockFilter, categoryFilter, sortOrder]);
 
     useEffect(() => {
-        // Clear selection if filters change to avoid confusion
         setSelectedProducts([]);
     }, [searchTerm, stockFilter, categoryFilter, sortOrder]);
 
-
-    // --- HANDLERS ---
     const handleOpenProductModal = (product = null) => {
         setEditingProduct(product);
         setIsProductModalOpen(true);
@@ -115,7 +108,6 @@ const ShopManagementPage = () => {
         }
     };
 
-    // **NEW**: Handlers for multiple selection
     const handleProductSelection = (productId) => {
         setSelectedProducts(prevSelected =>
             prevSelected.includes(productId)
@@ -136,55 +128,34 @@ const ShopManagementPage = () => {
         const count = selectedProducts.length;
         if (count > 0 && window.confirm(`Are you sure you want to delete the ${count} selected products?`)) {
             try {
-                // This assumes your API service has a function for bulk deletion.
-                // You might need to implement this in `services/api.js`.
-                // e.g., await api.deleteMultipleShopProducts({ ids: selectedProducts });
-                console.log("Deleting products with IDs:", selectedProducts);
-                // For demonstration, we'll simulate deletion by calling single delete in a loop.
-                // In a real app, a single API call is much better.
                 await Promise.all(selectedProducts.map(id => api.deleteShopProduct(id)));
-
                 await fetchData();
-                setSelectedProducts([]); // Clear selection after deletion
+                setSelectedProducts([]);
             } catch (error) {
                 console.error("Failed to delete selected products:", error);
                 alert("Error: Could not delete the selected products.");
             }
         }
     };
-
-
+    
     return (
         <div className="bg-gray-50 min-h-screen pt-10">
             <main className="container mx-auto p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                 {/* ... Header and Filter section are unchanged ... */}
+                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div className="flex items-center gap-x-3">
-                        <button
-                            onClick={() => navigate(-1)}
-                            aria-label="Go back"
-                            className="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
+                        <button onClick={() => navigate(-1)} aria-label="Go back" className="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             <ArrowLeft className="h-6 w-6" />
                         </button>
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            Shop Management
-                        </h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Shop Management</h1>
                     </div>
-
-                    {/* **MODIFIED**: Conditional action button */}
                     {selectedProducts.length > 0 ? (
-                         <button 
-                            onClick={handleBulkDelete} 
-                            className="flex items-center bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105"
-                        >
+                         <button onClick={handleBulkDelete} className="flex items-center bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105">
                             <FiTrash2 className="mr-2" size={20} />
                             Delete ({selectedProducts.length}) Selected
                         </button>
                     ) : (
-                        <button 
-                            onClick={() => handleOpenProductModal()} 
-                            className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105"
-                        >
+                        <button onClick={() => handleOpenProductModal()} className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105">
                             <FiPlus className="mr-2" size={20} />
                             Add New Product
                         </button>
@@ -193,7 +164,6 @@ const ShopManagementPage = () => {
                 
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-8 border border-gray-100">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* Search Bar */}
                         <div>
                             <label htmlFor="search" className="block text-sm font-medium text-gray-600 mb-1">Search by Name</label>
                             <div className="relative">
@@ -201,8 +171,6 @@ const ShopManagementPage = () => {
                                 <input type="text" id="search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="e.g., Luxury Box" className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"/>
                             </div>
                         </div>
-
-                        {/* Stock Filter */}
                         <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Stock Status</label>
                             <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
@@ -213,8 +181,6 @@ const ShopManagementPage = () => {
                                 ))}
                             </div>
                         </div>
-
-                        {/* Category Filter */}
                         <div>
                             <label htmlFor="categoryFilter" className="block text-sm font-medium text-gray-600 mb-1">Category</label>
                             <select id="categoryFilter" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="w-full py-2 px-3 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
@@ -222,8 +188,6 @@ const ShopManagementPage = () => {
                                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                             </select>
                         </div>
-                        
-                        {/* Sort Dropdown */}
                         <div>
                             <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-600 mb-1">Sort By</label>
                             <select id="sortOrder" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="w-full py-2 px-3 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
@@ -247,7 +211,6 @@ const ShopManagementPage = () => {
                                     products={filteredAndSortedProducts}
                                     onEdit={handleOpenProductModal}
                                     onDelete={handleProductDelete}
-                                    // **NEW**: Pass selection props
                                     selectedProducts={selectedProducts}
                                     onProductSelect={handleProductSelection}
                                     onSelectAll={handleSelectAll}
@@ -277,10 +240,8 @@ const ShopManagementPage = () => {
 };
 
 // --- Child components ---
-// **MODIFIED**: ProductList now handles selections
 const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSelect, onSelectAll }) => {
     const headerCheckboxRef = useRef(null);
-
     const isAllSelected = products.length > 0 && selectedProducts.length === products.length;
 
     useEffect(() => {
@@ -303,16 +264,12 @@ const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSe
                 <thead className="bg-gray-50">
                     <tr>
                         <th className="px-4 py-3 text-left">
-                           <input
-                                type="checkbox"
-                                ref={headerCheckboxRef}
-                                checked={isAllSelected}
-                                onChange={onSelectAll}
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
+                           <input type="checkbox" ref={headerCheckboxRef} checked={isAllSelected} onChange={onSelectAll} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        {/* MODIFIED: Added Stock column */}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -322,26 +279,14 @@ const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSe
                     {products.map(product => {
                         const isSelected = selectedProducts.includes(product.id);
                         return (
-                            <motion.tr 
-                                key={product.id} 
-                                layout 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
-                                exit={{ opacity: 0 }} 
-                                className={`transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                            >
+                            <motion.tr key={product.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-4 py-4 whitespace-nowrap">
-                                    <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() => onProductSelect(product.id)}
-                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    />
+                                    <input type="checkbox" checked={isSelected} onChange={() => onProductSelect(product.id)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
                                         <div className="flex-shrink-0 h-10 w-10">
-                                            <img className="h-10 w-10 rounded-md object-cover" src={product.image} alt={product.name} />
+                                            <img className="h-10 w-10 rounded-md object-cover" src={product.image || product.image1} alt={product.name} />
                                         </div>
                                         <div className="ml-4">
                                             <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -349,6 +294,8 @@ const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSe
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{Number(product.price).toFixed(3)} BHD</td>
+                                {/* MODIFIED: Show stock quantity */}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{product.stockQuantity}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     {product.inStock ? (
                                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">In Stock</span>
@@ -372,81 +319,24 @@ const ProductList = ({ products, onEdit, onDelete, selectedProducts, onProductSe
     );
 };
 
+// ... CategoryManager is unchanged ...
 const CategoryManager = ({ categories, isLoading, refreshData }) => {
     const [name, setName] = useState('');
     const [editingCategory, setEditingCategory] = useState(null);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!name.trim()) return;
-        try {
-            if (editingCategory) {
-                await api.updateShopCategory(editingCategory.id, { name });
-            } else {
-                await api.createShopCategory({ name });
-            }
-            setName('');
-            setEditingCategory(null);
-            await refreshData();
-        } catch (error) {
-            console.error("Failed to save category:", error);
-            alert("Error: Could not save category.");
-        }
-    };
-    
-    const handleDelete = async (categoryId) => {
-        if(window.confirm("Are you sure you want to delete this category and ALL its products? This action cannot be undone.")) {
-            try {
-                await api.deleteShopCategory(categoryId);
-                await refreshData();
-            } catch (error) {
-                console.error("Failed to delete category:", error);
-                alert("Error: Could not delete category.");
-            }
-        }
-    };
+    const handleSubmit = async (e) => { e.preventDefault(); if (!name.trim()) return; try { if (editingCategory) { await api.updateShopCategory(editingCategory.id, { name }); } else { await api.createShopCategory({ name }); } setName(''); setEditingCategory(null); await refreshData(); } catch (error) { console.error("Failed to save category:", error); alert("Error: Could not save category."); } };
+    const handleDelete = async (categoryId) => { if(window.confirm("Are you sure you want to delete this category and ALL its products? This action cannot be undone.")) { try { await api.deleteShopCategory(categoryId); await refreshData(); } catch (error) { console.error("Failed to delete category:", error); alert("Error: Could not delete category."); } } };
+    const handleEditClick = (category) => { setEditingCategory(category); setName(category.name); };
+    const handleCancelEdit = () => { setEditingCategory(null); setName(''); };
 
-    const handleEditClick = (category) => {
-        setEditingCategory(category);
-        setName(category.name);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingCategory(null);
-        setName('');
-    };
-
-    return (
-        <div>
-            <form onSubmit={handleSubmit} className="mb-6 space-y-3">
-                <label className="text-sm font-medium text-gray-700">{editingCategory ? 'Edit Category' : 'Add New Category'}</label>
-                <div className="flex gap-2">
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Boxes" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"/>
-                    <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold">{editingCategory ? 'Update' : 'Add'}</button>
-                </div>
-                 {editingCategory && <button type="button" onClick={handleCancelEdit} className="text-sm text-gray-500 hover:underline">Cancel Edit</button>}
-            </form>
-            {isLoading ? <p>Loading...</p> : (
-                <ul className="space-y-2">
-                     <AnimatePresence>
-                    {categories.map(cat => (
-                        <motion.li key={cat.id} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                            <span className="text-gray-800">{cat.name}</span>
-                            <div className="flex items-center space-x-1">
-                                <button onClick={() => handleEditClick(cat)} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50"><FiEdit size={14}/></button>
-                                <button onClick={() => handleDelete(cat.id)} className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50"><FiTrash2 size={14}/></button>
-                            </div>
-                        </motion.li>
-                    ))}
-                     </AnimatePresence>
-                </ul>
-            )}
-        </div>
-    );
+    return ( <div> <form onSubmit={handleSubmit} className="mb-6 space-y-3"> <label className="text-sm font-medium text-gray-700">{editingCategory ? 'Edit Category' : 'Add New Category'}</label> <div className="flex gap-2"> <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Boxes" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"/> <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold">{editingCategory ? 'Update' : 'Add'}</button> </div> {editingCategory && <button type="button" onClick={handleCancelEdit} className="text-sm text-gray-500 hover:underline">Cancel Edit</button>} </form> {isLoading ? <p>Loading...</p> : ( <ul className="space-y-2"> <AnimatePresence> {categories.map(cat => ( <motion.li key={cat.id} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg"> <span className="text-gray-800">{cat.name}</span> <div className="flex items-center space-x-1"> <button onClick={() => handleEditClick(cat)} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50"><FiEdit size={14}/></button> <button onClick={() => handleDelete(cat.id)} className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50"><FiTrash2 size={14}/></button> </div> </motion.li> ))} </AnimatePresence> </ul> )} </div> );
 };
 
+
+// MODIFIED: The Product Form Modal
 const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories }) => {
-    const [formData, setFormData] = useState({ name: '', price: '', inStock: true, categoryId: '', description: '' });
+    // MODIFIED: State now includes stockQuantity and removes inStock
+    const [formData, setFormData] = useState({ name: '', price: '', categoryId: '', description: '', stockQuantity: 0 });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -457,13 +347,15 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
                 setFormData({
                     name: productToEdit.name || '',
                     price: productToEdit.price || '',
-                    inStock: !!productToEdit.inStock,
                     categoryId: productToEdit.categoryId || '',
-                    description: productToEdit.description || ''
+                    description: productToEdit.description || '',
+                    // MODIFIED: Set stockQuantity from product to edit
+                    stockQuantity: productToEdit.stockQuantity || 0,
                 });
                 setImagePreview(productToEdit.image || '');
             } else {
-                 setFormData({ name: '', price: '', inStock: true, categoryId: categories[0]?.id || '', description: '' });
+                 // MODIFIED: Initialize with stockQuantity
+                 setFormData({ name: '', price: '', categoryId: categories[0]?.id || '', description: '', stockQuantity: 0 });
                  setImagePreview('');
             }
             setImageFile(null);
@@ -488,13 +380,11 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
         setIsSubmitting(true);
         const data = new FormData();
         Object.keys(formData).forEach(key => data.append(key, formData[key]));
-
         if (imageFile) {
             data.append('image', imageFile);
         } else if (productToEdit) {
             data.append('existingImage', productToEdit.image);
         }
-
         await onSubmit(data);
         setIsSubmitting(false);
     };
@@ -513,9 +403,12 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto space-y-4">
                             <ImageUploader name="image" preview={imagePreview} onChange={handleFileChange} required={!productToEdit} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* MODIFIED: Changed grid layout to fit stock quantity */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                <InputWithIcon Icon={FiTag} type="text" name="name" value={formData.name} onChange={handleTextChange} placeholder="Product Name" required />
                                <InputWithIcon Icon={FaMoneyBillWave} type="number" name="price" value={formData.price} onChange={handleTextChange} placeholder="Price" step="0.001" required />
+                               {/* MODIFIED: Added stock quantity input */}
+                               <InputWithIcon Icon={FiBox} type="number" name="stockQuantity" value={formData.stockQuantity} onChange={handleTextChange} placeholder="Stock" min="0" required />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
@@ -525,13 +418,9 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
                                 </select>
                             </div>
                             <InputWithIcon Icon={FiFileText} name="description" value={formData.description} as="textarea" onChange={handleTextChange} placeholder="Product details..." rows="3" required />
-                            <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                                <label className="font-semibold text-gray-700">In Stock</label>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" name="inStock" checked={formData.inStock} onChange={handleTextChange} className="sr-only peer" />
-                                  <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                                </label>
-                            </div>
+                            
+                            {/* MODIFIED: Removed the "In Stock" toggle switch */}
+                            
                             <div className="flex justify-end pt-4">
                                 <button type="button" onClick={onClose} disabled={isSubmitting} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-300 disabled:opacity-50">Cancel</button>
                                 <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50">
@@ -546,38 +435,10 @@ const ProductFormModal = ({ isOpen, onClose, onSubmit, productToEdit, categories
     );
 };
 
-const SubmittingLoader = () => {
-  const loaderVariants = { animation: { transition: { staggerChildren: 0.15 } } };
-  const dotVariants = { animation: { y: [0, -12, 0], transition: { duration: 1.2, ease: "easeInOut", repeat: Infinity } } };
-  return (
-    <motion.div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex justify-center items-center z-10 rounded-2xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <motion.div className="flex space-x-2" variants={loaderVariants} animate="animation">
-        <motion.div className="w-3 h-3 bg-blue-500 rounded-full" variants={dotVariants} />
-        <motion.div className="w-3 h-3 bg-blue-500 rounded-full" variants={dotVariants} />
-        <motion.div className="w-3 h-3 bg-blue-500 rounded-full" variants={dotVariants} />
-      </motion.div>
-    </motion.div>
-  );
-};
 
-const ImageUploader = ({ name, preview, onChange, required }) => (
-    <div>
-      <label className="block text-sm font-semibold text-gray-600 mb-2">Product Image</label>
-      <label htmlFor={name} className="relative cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg h-40 flex justify-center items-center hover:border-blue-500 transition-colors">
-        {preview ? <img src={preview} alt="Preview" className="h-full w-full object-contain rounded-lg p-2" /> : <div className="text-center text-gray-400"><FiUploadCloud size={32} className="mx-auto" /><p className="mt-2 text-sm">Click to upload</p></div>}
-        <input id={name} name={name} type="file" accept="image/*" onChange={onChange} className="sr-only" required={required} />
-      </label>
-    </div>
-  );
-  
-const InputWithIcon = ({ Icon, as = "input", ...props }) => {
-    const Component = as;
-    return (
-        <div className="relative">
-            <Icon className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-            <Component {...props} className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow bg-white" />
-        </div>
-    );
-};
+// --- Helper components are unchanged ---
+const SubmittingLoader = () => { const loaderVariants = { animation: { transition: { staggerChildren: 0.15 } } }; const dotVariants = { animation: { y: [0, -12, 0], transition: { duration: 1.2, ease: "easeInOut", repeat: Infinity } } }; return ( <motion.div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex justify-center items-center z-10 rounded-2xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}> <motion.div className="flex space-x-2" variants={loaderVariants} animate="animation"> <motion.div className="w-3 h-3 bg-blue-500 rounded-full" variants={dotVariants} /> <motion.div className="w-3 h-3 bg-blue-500 rounded-full" variants={dotVariants} /> <motion.div className="w-3 h-3 bg-blue-500 rounded-full" variants={dotVariants} /> </motion.div> </motion.div> ); };
+const ImageUploader = ({ name, preview, onChange, required }) => ( <div> <label className="block text-sm font-semibold text-gray-600 mb-2">Product Image</label> <label htmlFor={name} className="relative cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg h-40 flex justify-center items-center hover:border-blue-500 transition-colors"> {preview ? <img src={preview} alt="Preview" className="h-full w-full object-contain rounded-lg p-2" /> : <div className="text-center text-gray-400"><FiUploadCloud size={32} className="mx-auto" /><p className="mt-2 text-sm">Click to upload</p></div>} <input id={name} name={name} type="file" accept="image/*" onChange={onChange} className="sr-only" required={required} /> </label> </div> );
+const InputWithIcon = ({ Icon, as = "input", ...props }) => { const Component = as; return ( <div className="relative"> <Icon className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" /> <Component {...props} className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow bg-white" /> </div> ); };
 
 export default ShopManagementPage;

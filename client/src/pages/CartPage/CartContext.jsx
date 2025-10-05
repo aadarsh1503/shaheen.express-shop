@@ -1,15 +1,14 @@
-// src/context/CartContext.js
-import React, { createContext, useState, useEffect, useContext } from 'react';
+// src/pages/CartPage/CartContext.js (COMPLETE AND UPDATED)
 
-// 1. Create the context
+import React, { createContext, useState, useEffect, useContext } from 'react';
+// Import toast
+import { toast } from 'react-toastify';
+
 const CartContext = createContext();
 
-// Custom hook to use the cart context easily
 export const useCart = () => useContext(CartContext);
 
-// 2. Create a provider component
 export const CartProvider = ({ children }) => {
-  // Initialize state from localStorage or as an empty array
   const [cartItems, setCartItems] = useState(() => {
     try {
       const localData = localStorage.getItem('cart');
@@ -20,7 +19,6 @@ export const CartProvider = ({ children }) => {
     }
   });
 
-  // Save to localStorage whenever cartItems changes
   useEffect(() => {
     try {
       localStorage.setItem('cart', JSON.stringify(cartItems));
@@ -31,46 +29,63 @@ export const CartProvider = ({ children }) => {
 
   // --- Cart Management Functions ---
 
-  // Function to add an item (or update quantity if it exists)
-  // CHANGE: Accept productTable to know the product's origin
+  // MODIFIED: addToCart with stock check and toast notification
   const addToCart = (product, productTable) => {
+    if (product.stockQuantity === undefined) {
+      toast.error("Sorry, an error occurred.");
+      return;
+    }
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
-        // If item exists, update its quantity
+        // Correct logic: Calculate potential new quantity
+        const newQuantity = existingItem.quantity + 1;
+        if (newQuantity > product.stockQuantity) {
+          toast.warn(`Max quantity for ${product.name} is ${product.stockQuantity}.`);
+          return prevItems; // Don't update
+        }
+        toast.success(`${product.name} added to cart!`);
         return prevItems.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id ? { ...item, quantity: newQuantity } : item
         );
       } else {
-        // If new item, add it with quantity 1 and the productTable
+        toast.success(`${product.name} added to cart!`);
         return [...prevItems, { ...product, quantity: 1, productTable }];
       }
     });
   };
   
-  // Function to remove an item completely
   const removeFromCart = (itemId) => {
-    // Note: In local cart, we use product.id, not cart_item_id
     setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
   };
   
-  // Function to update quantity (increase/decrease)
-  const updateQuantity = (itemId, delta) => { // delta can be 1 or -1
+  // MODIFIED: updateQuantity with stock check and toast notification
+  const updateQuantity = (itemId, delta) => {
     setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.id === itemId
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) } // Ensure quantity is at least 1
-          : item
-      ).filter(item => item.quantity > 0) // Also remove if quantity becomes 0 or less
+      prevItems.map(item => {
+        if (item.id === itemId) {
+          const newQuantity = item.quantity + delta;
+
+          // If increasing, check against stock and cap the value
+          if (delta > 0 && newQuantity > item.stockQuantity) {
+            toast.warn(`Max quantity reached! Only ${item.stockQuantity} available.`);
+            // IMPORTANT: Cap the quantity at the stock limit
+            return { ...item, quantity: item.stockQuantity };
+          }
+          
+          // Ensure quantity is at least 1
+          const finalQuantity = Math.max(1, newQuantity);
+
+          return { ...item, quantity: finalQuantity };
+        }
+        return item;
+      })
     );
   };
-
-  // Function to empty the cart
   const emptyCart = () => {
     setCartItems([]);
   };
   
-  // Provide state and functions to children components
   const value = {
     cartItems,
     addToCart,

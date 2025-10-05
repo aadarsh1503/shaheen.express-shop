@@ -16,6 +16,32 @@ const ProductCard = ({ product, onEdit, onDelete, isSelected, onSelect }) => {
     callback();
   };
 
+  // **NEW**: Helper function to render the stock status badge with quantity
+  const renderStockStatus = () => {
+    // If out of stock
+    if (!product.inStock || product.stockQuantity <= 0) {
+      return (
+        <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+          Out of Stock
+        </span>
+      );
+    }
+    // If low stock (e.g., 10 or less)
+    if (product.stockQuantity <= 10) {
+      return (
+        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+          {product.stockQuantity} Left (Low)
+        </span>
+      );
+    }
+    // If stock is healthy
+    return (
+      <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+        {product.stockQuantity} in Stock
+      </span>
+    );
+  };
+
   return (
     <motion.div
       variants={cardVariants}
@@ -42,14 +68,15 @@ const ProductCard = ({ product, onEdit, onDelete, isSelected, onSelect }) => {
       <div className="p-5 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-bold text-xl text-gray-800 truncate pr-4" title={product.name}>{product.name}</h3>
-          {product.inStock ? <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">In Stock</span> : <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">Out of Stock</span>}
+          {/* MODIFIED: Replaced the old ternary with the new helper function call */}
+          {renderStockStatus()}
         </div>
         <p className="text-gray-600 text-sm mb-4 flex-grow">{product.description}</p>
         <div className="flex justify-between items-center mt-auto">
           <p className="text-xl font-semibold text-gray-900">{Number(product.price).toFixed(3)} <span className="text-sm font-normal text-gray-500 ml-1">{product.currency}</span></p>
           <div className="flex items-center space-x-2">
             <button onClick={(e) => stopPropagation(e, () => onEdit(product))} className="p-2 rounded-full text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors duration-300" title="Edit"><FiEdit size={16} /></button>
-            <button onClick={(e) => stopPropagation(e, () => onDelete(product))} className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 transition-colors duration-300" title="Delete"><FiTrash2 size={16} /></button>
+            <button onClick={(e) => stopPropagation(e, () => onDelete(product.id))} className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 transition-colors duration-300" title="Delete"><FiTrash2 size={16} /></button>
           </div>
         </div>
       </div>
