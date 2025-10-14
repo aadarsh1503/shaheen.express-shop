@@ -221,47 +221,54 @@ const createPasswordResetEmail = (userName, resetURL) => {
 // --- FORGOT PASSWORD FUNCTION (UPDATED & CLEANED) ---
 export const forgotPassword = async (req, res) => {
     try {
+      
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'https://shaheen.express',
+            'https://shaheen-express-shop.vercel.app'
+        ];
+
+        
+        const origin = req.headers.origin;
+        console.log("Request received from origin:", origin);
+
+   
+        if (!allowedOrigins.includes(origin)) {
+            console.error(`Forbidden origin: ${origin}. Request blocked.`);
+          
+            return res.status(500).json({ message: "An error occurred." });
+        }
+
         const { email } = req.body;
-        console.log("Forgot Password Request for Email:", email);
-
+        
         const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-        console.log("User Query Result:", users);
-
+        
         if (users.length === 0) {
-            console.log("No user found with this email:", email);
+          
             return res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
         const user = users[0];
-        console.log("User Found:", user);
-
         const resetToken = crypto.randomBytes(20).toString('hex');
-        console.log("Generated Reset Token:", resetToken);
-
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        console.log("Hashed Token:", hashedToken);
-
         const tokenExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-        console.log("Token Expiry Time:", tokenExpiry);
 
         await pool.query(
             'UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?',
             [hashedToken, tokenExpiry, user.id]
         );
-        console.log("Database Updated with Reset Token and Expiry");
 
-        const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-        console.log("Reset URL:", resetURL);
+      
+        const resetURL = `${origin}/reset-password/${resetToken}`;
+        console.log("Dynamically created reset URL:", resetURL);
 
         const emailHtml = createPasswordResetEmail(user.name, resetURL);
-        console.log("Email HTML Created");
 
         await sendEmail({
             email: user.email,
             subject: 'Password Reset Request',
             message: emailHtml 
         });
-        console.log("Reset Email Sent to:", user.email);
 
         res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
 
@@ -270,6 +277,7 @@ export const forgotPassword = async (req, res) => {
         res.status(500).json({ message: "An error occurred. Please try again later." });
     }
 };
+
 
 
 // --- RESET PASSWORD FUNCTION ---

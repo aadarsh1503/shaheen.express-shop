@@ -19,7 +19,7 @@ const app = express();
 const allowedOrigins = [
  
   'https://shaheen-express-shop.vercel.app',
-
+'https://shaheen.express/',
   'http://localhost:5173',
 ];
 
