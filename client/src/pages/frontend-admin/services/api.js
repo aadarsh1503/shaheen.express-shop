@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // The base URL for your entire backend API
-const API_URL = 'https://shaheen-express-shop.onrender.com/api';
+const API_URL = 'https://shaheenexpresscr.crmgcc.net/api';
 
 // ===================================================================
 //  INSTANCE 1: User API Client

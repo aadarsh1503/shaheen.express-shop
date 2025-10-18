@@ -33,7 +33,7 @@ const ShopHero = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('https://shaheen-express-shop.onrender.com/api/shop/categories');
+        const response = await axios.get('https://shaheenexpresscr.crmgcc.net/api/shop/categories');
         setCategories(response.data);
         setError(null);
       } catch (err) {

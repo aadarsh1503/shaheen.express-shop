@@ -156,7 +156,7 @@ function AppContent() {
     if (!token) return;
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const { data } = await axios.get('https://shaheen-express-shop.onrender.com/api/cart', config);
+      const { data } = await axios.get('https://shaheenexpresscr.crmgcc.net/api/cart', config);
       setServerCartItems(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch server cart:", error);
@@ -201,7 +201,7 @@ function AppContent() {
         }
         try {
           const config = { headers: { 'Authorization': `Bearer ${token}` } };
-          await axios.post('https://shaheen-express-shop.onrender.com/api/cart', {
+          await axios.post('https://shaheenexpresscr.crmgcc.net/api/cart', {
             productId: product.id,
             quantity: quantity, // The quantity is usually 1 when clicking the button
             productTable: productTable,
@@ -234,7 +234,7 @@ function AppContent() {
       try {
         // 3. Send the request to the server in the background
         const config = { headers: { 'Authorization': `Bearer ${token}` } };
-        await axios.delete(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, config);
+        await axios.delete(`https://shaheenexpresscr.crmgcc.net/api/cart/${itemId}`, config);
         // No toast on success, the UI change is the feedback
       } catch (error) {
         // 4. If it fails, show an error and revert the UI
@@ -272,7 +272,7 @@ function AppContent() {
 
         // Send API request in the background with the validated quantity
         const config = { headers: { 'Authorization': `Bearer ${token}` } };
-        axios.put(`https://shaheen-express-shop.onrender.com/api/cart/${itemId}`, { quantity: newQuantity }, config)
+        axios.put(`https://shaheenexpresscr.crmgcc.net/api/cart/${itemId}`, { quantity: newQuantity }, config)
           .catch(error => {
             // Handle specific error from our updated backend
             if (error.response && error.response.data.message) {
@@ -301,7 +301,7 @@ function AppContent() {
         setServerCartItems([]); // Optimistic update
         try {
           const config = { headers: { 'Authorization': `Bearer ${token}` } };
-          await axios.delete('https://shaheen-express-shop.onrender.com/api/cart', config);
+          await axios.delete('https://shaheenexpresscr.crmgcc.net/api/cart', config);
           toast.info("Cart has been emptied.");
         } catch (error) {
           toast.error("Could not empty the cart.");

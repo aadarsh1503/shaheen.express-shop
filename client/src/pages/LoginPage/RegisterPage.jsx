@@ -23,7 +23,7 @@ const RegisterPage = () => {
     }
 
     try {
-      const response = await axios.post('https://shaheen-express-shop.onrender.com/api/auth/signup', {
+      const response = await axios.post('https://shaheenexpresscr.crmgcc.net/api/auth/signup', {
         name,
         email,
         password,
