@@ -65,6 +65,7 @@ const Footer = () => {
   const infoLinks = [
     { name: "About Us", href: "/aboutUs" },
     { name: "Services", href: "/#services" },
+    { name: "Online Store", href: "/shop" },
     { name: "Delivery", href: "/manPower" },
     { name: "FAQ", href: "/faq" },
   ];
