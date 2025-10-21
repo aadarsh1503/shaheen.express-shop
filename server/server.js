@@ -16,28 +16,44 @@ dotenv.config();
 const app = express();
 
 
-const allowedOrigins = [
+// const allowedOrigins = [
  
-  'https://shaheen-express-shop.vercel.app',
-'https://shaheen.express/',
-  'http://localhost:5173',
-];
+//   'https://shaheen-express-shop.vercel.app',
+// 'https://shaheen.express/',
+//   'http://localhost:5173',
+//   'https://shaheen.express/'
+// ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (like mobile apps or curl requests)
+//     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  }
-};
+//     if (allowedOrigins.indexOf(origin) === -1) {
+//       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+//       return callback(new Error(msg), false);
+//     }
+//     return callback(null, true);
+//   }
+// };
+
+// ✅ Allow your frontend domain
+app.use(cors({
+  origin: ["https://shaheen.express",
+    "https://shaheen-express-shop.vercel.app",
+"https://shaheen.express/",
+  "http://localhost:5173",
+  "https://shaheen.express/"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+// Optional: handle preflight (OPTIONS)
+//app.options('*', cors());
 
 
-app.use(cors(corsOptions));
+//app.use(cors(corsOptions));
 
 
 
@@ -57,13 +73,13 @@ app.get("/", (req, res) => {
   res.send("Backend server is running 🚀");
 });
 
-app.get("/api/test-db", (req, res) => {
-  db.query("SELECT NOW() AS currentTime", (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const [results] = await db.query("SELECT NOW() AS currentTime");
     res.json({ message: "✅ Database connected!", time: results[0].currentTime });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Start server
