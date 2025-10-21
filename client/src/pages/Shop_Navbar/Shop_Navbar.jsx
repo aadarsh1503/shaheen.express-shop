@@ -1,3 +1,5 @@
+// src/pages/Shop_Navbar/Shop_Navbar.js (COMPLETE AND UPDATED)
+
 import React, { useState, useEffect } from 'react';
 import { Menu, Search, User, ShoppingCart, X, ChevronRight, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,7 +8,7 @@ import { useAuth } from '../Context/AuthContext';
 import SearchOverlay from './SearchOverlay';
 import LanguageSwitcher from '../../components/LanguageSwticher/LanguageSwitcher';
 
-// --- SHOPPING CART SIDEBAR (No changes needed here) ---
+// --- SHOPPING CART SIDEBAR (This is where the fix is) ---
 const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtotal, currency }) => {
   const hasItems = cartItems && cartItems.length > 0;
 
@@ -49,7 +51,12 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
             <div className="flex-grow overflow-y-auto p-4">
               {cartItems.map(item => (
                 <div key={item.id} className="flex gap-4 py-3 border-b border-gray-200 items-center">
-                  <img src={item.image1} alt={item.name} className="w-16 h-16 object-contain border border-gray-200 flex-shrink-0" />
+                  {/* ⭐️⭐️⭐️ CHANGE IS ON THIS LINE ⭐️⭐️⭐️ */}
+                  <img 
+                    src={item.image1 || item.image} // Use item.image1, but if it's missing, use item.image
+                    alt={item.name} 
+                    className="w-16 h-16 object-contain border border-gray-200 flex-shrink-0" 
+                  />
                   <div className="flex-grow">
                     <p className="text-sm font-medium text-gray-800 leading-tight">{item.name}</p>
                     <p className="text-xs text-gray-500 mt-1">{item.quantity} × {(parseFloat(item.price)).toFixed(3)} {currency}</p>
@@ -194,7 +201,7 @@ const Shop_Navbar = ({ cartItems = [], onRemoveItem, subtotal, currency }) => {
 
 
 // =====================================================================
-// --- MEGAMENU COMPONENT (Updated with Wishlist "Coming Soon") ---
+// --- MEGAMENU COMPONENT (No changes needed here) ---
 // =====================================================================
 const menuData = {
   CATEGORIES: [
