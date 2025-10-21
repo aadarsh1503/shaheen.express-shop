@@ -143,7 +143,7 @@ export const updateUserInfo = async (req, res) => {
 // --- [UPGRADED] HELPER FUNCTION FOR CREATING THE BRANDED HTML EMAIL ---
 const createPasswordResetEmail = (userName, resetURL) => {
     const brandColor = '#E32126';
-    const logoURL = 'https://shaheen--express.vercel.app/assets/i1-3Ew8TKSD.png';
+    const logoURL = 'https://shaheen.express/assets/i1-3Ew8TKSD.png';
 
     return `
     <!DOCTYPE html>
