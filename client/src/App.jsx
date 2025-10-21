@@ -50,6 +50,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage/ResetPasswordPage';
 import ProductDetail from './pages/ProductDetail/ProductDetail';
 import ShopManagementPage from './pages/frontend-admin/AdminPage/ShopManagementPage';
 import { CartProvider , useCart} from './pages/CartPage/CartContext';
+import AdminForgotPasswordPage from './pages/frontend-admin/AdminLoginPage/AdminForgotPasswordPage';
+import AdminResetPasswordPage from './pages/frontend-admin/AdminLoginPage/AdminResetPasswordPage';
 // Correct Context Imports
 
 
@@ -375,6 +377,8 @@ function AppContent() {
 
         {/* --- Admin Public & Protected Routes --- */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
+        <Route path="/admin/reset-password/:token" element={<AdminResetPasswordPage />} />
         <Route path="/admin/signup" element={<AdminSignupPage />} />
         <Route path="/admin/products" element={<AdminProtectedRoute><AdminPage /></AdminProtectedRoute>} />
         <Route path="/admin/categories" element={<AdminProtectedRoute><CategoryAdmin /></AdminProtectedRoute>} />

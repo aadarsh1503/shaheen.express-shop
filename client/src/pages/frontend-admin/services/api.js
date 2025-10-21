@@ -49,6 +49,20 @@ adminApiClient.interceptors.request.use(
 // +++ ADD THIS EXPORT LINE +++
 export { adminApiClient }; 
 
+export const adminForgotPassword = (email) => {
+  // We can use either client since no token is needed for this request
+  return userApiClient.post('/admin/forgot-password', { email });
+};
+
+/**
+ * Resets the admin's password using a token from the email link.
+ * This does not require an auth token.
+ */
+export const adminResetPassword = (token, password) => {
+  // We can use either client since no token is needed for this request
+  return userApiClient.post(`/admin/reset-password/${token}`, { password });
+};
+
 // ===================================================================
 //  AUTHENTICATION & USER PROFILE FUNCTIONS
 // ===================================================================

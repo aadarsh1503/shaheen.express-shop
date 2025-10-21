@@ -25,7 +25,7 @@ const AdminLoginPage = () => {
       loginAdmin(response.data.token);
       navigate('/admin/products'); 
 
-    } catch (err) { // <--- THIS IS THE CORRECTED LINE
+    } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     }
   };
@@ -39,7 +39,6 @@ const AdminLoginPage = () => {
         
         {/* Logo Placeholder */}
         <div className="flex justify-center mb-6">
-          {/* IMPORTANT: Replace this src with the path to your actual logo! */}
           <img src="https://shaheen--express.vercel.app/assets/i1-3Ew8TKSD.png" alt="Company Logo" className="h-16 w-auto" />
         </div>
 
@@ -89,6 +88,18 @@ const AdminLoginPage = () => {
             </button>
           </div>
 
+          {/* --- NEWLY ADDED SECTION --- */}
+          <div className="flex items-center justify-end -mt-4">
+            <Link
+              to="/admin/forgot-password" // This route will need a new page component
+              className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline transition-colors"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+          {/* --- END OF NEW SECTION --- */}
+
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 text-center">
               {error}
@@ -104,14 +115,6 @@ const AdminLoginPage = () => {
           </button>
         </form>
 
-        <div className="text-center mt-8">
-          {/* <p className="text-sm text-gray-500">
-            Need an admin account?{' '}
-            <Link to="/admin/signup" className="font-semibold text-indigo-600 hover:underline">
-              Register Here
-            </Link>
-          </p> */}
-        </div>
       </div>
     </div>
   );
