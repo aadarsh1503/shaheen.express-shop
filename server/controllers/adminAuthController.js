@@ -175,7 +175,7 @@ export const adminForgotPassword = async (req, res) => {
         );
 
         // Correctly form the reset URL
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const clientUrl = process.env.CLIENT_URL || 'https://shaheen.express';
         const resetURL = `${clientUrl}/admin/reset-password/${resetToken}`;
 
         const emailHtml = createAdminPasswordResetEmail(admin.name, resetURL);
