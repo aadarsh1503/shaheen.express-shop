@@ -62,7 +62,7 @@ const ShoppingCartSidebar = ({ isOpen, onClose, cartItems, onRemoveItem, subtota
                     <p className="text-xs text-gray-500 mt-1">{item.quantity} × {(parseFloat(item.price)).toFixed(3)} {currency}</p>
                   </div>
                   <button 
-                    onClick={() => onRemoveItem(item.cart_item_id)}
+                    onClick={() => onRemoveItem(item.id)}
                     className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2" 
                     aria-label={`Remove ${item.name}`}
                   >

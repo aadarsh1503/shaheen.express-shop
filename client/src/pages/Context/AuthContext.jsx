@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = 'https://shaheenexpresscr.crmgcc.net/api';
+    const API_URL = '/api';
 
     const mergeLocalCartWithServer = async (userToken) => {
         try {

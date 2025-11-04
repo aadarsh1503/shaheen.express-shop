@@ -1,17 +1,12 @@
-// src/pages/Shop/ShopPage.js (COMPLETE AND UPDATED)
+// src/pages/home/home.js
 
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Switch } from '@headlessui/react';
 import { Link } from 'react-router-dom';
-import { 
-  ShoppingCart, 
-  Expand 
-} from 'lucide-react';
+import { ShoppingCart, Expand } from 'lucide-react';
 import ShopHero from './ShopHero';
 
-// --- PRODUCT CARD COMPONENT ---
 const ProductCard = ({ product, onAddToCart }) => {
   const handleAddToCartClick = (e) => {
     e.stopPropagation();
@@ -63,7 +58,6 @@ const ProductCard = ({ product, onAddToCart }) => {
             <div className="flex bg-white rounded-md shadow-lg overflow-hidden">
                 <button 
                   onClick={handleAddToCartClick}
-                  // This 'disabled' prop is the key to solving the problem
                   disabled={!product.inStock || product.stockQuantity <= 0}
                   className="p-3 text-gray-600 hover:bg-gray-100 hover:text-black transition-colors disabled:text-gray-300 disabled:hover:bg-white disabled:cursor-not-allowed" 
                   title={!product.inStock || product.stockQuantity <= 0 ? "Out of Stock" : "Add to Cart"}
@@ -94,7 +88,18 @@ const ProductCard = ({ product, onAddToCart }) => {
   );
 };
 
-// --- MAIN SHOP PAGE COMPONENT ---
+const ProductSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="relative overflow-hidden border-b-2 border-gray-200 pb-2">
+      <div className="relative w-full aspect-square bg-gray-200"></div>
+    </div>
+    <div className="mt-4 flex flex-col items-center">
+      <div className="h-4 w-3/4 rounded bg-gray-200 mb-3"></div>
+      <div className="h-5 w-1/2 rounded bg-gray-200"></div>
+    </div>
+  </div>
+);
+
 const ShopPage = ({ onAddToCart }) => {
   const [allProducts, setAllProducts] = useState([]); 
   const [displayedProducts, setDisplayedProducts] = useState([]);
@@ -103,21 +108,23 @@ const ShopPage = ({ onAddToCart }) => {
   const [sortBy, setSortBy] = useState('default');
   const [showInStockOnly, setShowInStockOnly] = useState(false);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get('https://shaheenexpresscr.crmgcc.net/api/products');
-        setAllProducts(response.data);
-        setDisplayedProducts(response.data);
-      } catch (err) {
-        setError('Failed to fetch products. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('/api/products');
+      setAllProducts(response.data);
+    } catch (err) {
+      setError('Failed to fetch products. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     let tempProducts = [...allProducts];
@@ -135,8 +142,26 @@ const ShopPage = ({ onAddToCart }) => {
   }, [sortBy, showInStockOnly, allProducts]);
 
   const renderContent = () => {
-    if (loading) return <div className="col-span-full text-center py-16 text-lg">Loading products...</div>;
-    if (error) return <div className="col-span-full text-center py-16 text-red-600">{error}</div>;
+    if (loading) {
+      return Array.from({ length: 8 }).map((_, index) => (
+        <ProductSkeleton key={index} />
+      ));
+    }
+
+    if (error) {
+      return (
+        <div className="col-span-full text-center py-16">
+          <h3 className="text-xl text-red-600">{error}</h3>
+          <button
+            onClick={fetchProducts}
+            className="mt-4 px-6 py-2 bg-[#EC2027] text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    
     if (displayedProducts.length === 0) {
       return (
         <div className="col-span-full text-center py-16">
@@ -145,6 +170,7 @@ const ShopPage = ({ onAddToCart }) => {
         </div>
       );
     }
+
     return displayedProducts.map((product) => (
       <ProductCard 
         key={product.id} 

@@ -76,7 +76,7 @@ const ProductCard = ({ product, onEdit, onDelete, isSelected, onSelect }) => {
           <p className="text-xl font-semibold text-gray-900">{Number(product.price).toFixed(3)} <span className="text-sm font-normal text-gray-500 ml-1">{product.currency}</span></p>
           <div className="flex items-center space-x-2">
             <button onClick={(e) => stopPropagation(e, () => onEdit(product))} className="p-2 rounded-full text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors duration-300" title="Edit"><FiEdit size={16} /></button>
-            <button onClick={(e) => stopPropagation(e, () => onDelete(product.id))} className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 transition-colors duration-300" title="Delete"><FiTrash2 size={16} /></button>
+            <button onClick={(e) => stopPropagation(e, () => onDelete(product))} className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 transition-colors duration-300" title="Delete"><FiTrash2 size={16} /></button>
           </div>
         </div>
       </div>

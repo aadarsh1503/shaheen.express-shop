@@ -36,6 +36,7 @@
     "react-phone-input-2": "^2.15.1",
     "react-places-autocomplete": "^7.3.0",
     "react-router-dom": "^7.0.1",
+    "react-router-hash-link": "^2.4.3",
     "react-slick": "^0.30.3",
     "react-time-picker": "^7.0.0",
     "react-timezone-select": "^3.2.8",

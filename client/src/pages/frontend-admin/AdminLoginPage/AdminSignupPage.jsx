@@ -16,7 +16,7 @@ const AdminSignupPage = () => {
     setSuccess('');
 
     try {
-      const response = await axios.post('https://shaheenexpresscr.crmgcc.net/api/admin/signup', {
+      const response = await axios.post('/api/admin/signup', {
         name,
         email,
         password,

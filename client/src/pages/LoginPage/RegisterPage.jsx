@@ -23,7 +23,7 @@ const RegisterPage = () => {
     }
 
     try {
-      const response = await axios.post('https://shaheenexpresscr.crmgcc.net/api/auth/signup', {
+      const response = await axios.post('/api/auth/signup', {
         name,
         email,
         password,

@@ -62,8 +62,7 @@ const ProductDetail = ({ onAddToCart, cartItems }) => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   useEffect(() => {
     const fetchAllData = async () => {
-      // THIS IS THE FIX: THE GUARD CLAUSE
-      // Agar 'id' nahi hai, toh kuch mat karo
+
       if (!id) {
         setLoading(false);
         setError("Product ID is missing.");

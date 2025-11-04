@@ -17,7 +17,7 @@ const AdminLoginPage = () => {
     setError('');
 
     try {
-      const response = await axios.post('https://shaheenexpresscr.crmgcc.net/api/admin/login', {
+      const response = await axios.post('/api/admin/login', {
         email,
         password,
       });
