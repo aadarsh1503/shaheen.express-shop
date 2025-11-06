@@ -276,10 +276,10 @@ const MegaMenu = ({ isOpen, onClose }) => {
               </a>
             </li>
             
-            <li onMouseEnter={() => setActiveMenu('CATEGORIES')}>
-              <a href="#" className={`flex justify-between items-center hover:text-gray-200 ${activeMenu === 'CATEGORIES' ? 'pb-1 border-b-2 border-white' : ''}`}>
-                <span>CATEGORIES</span>
-                <ChevronRight size={18} />
+            <li >
+              <a href="/faq" className={`flex justify-between items-center hover:text-gray-200 ${activeMenu === 'CATEGORIES' ? 'pb-1 border-b-2 border-white' : ''}`}>
+                <span>FAQ</span>
+                {/* <ChevronRight size={18} /> */}
               </a>
             </li>
           </ul>

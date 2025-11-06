@@ -1,44 +1,29 @@
 import React from 'react';
-import { Instagram, Mail, Phone, MapPin, ArrowUp } from 'lucide-react';
-import { FacebookOutlined } from '@ant-design/icons';
+import { Instagram, ArrowUp } from 'lucide-react';
 import { FaFacebookF } from 'react-icons/fa';
-import { FaX, FaXTwitter } from 'react-icons/fa6';
+import { FaXTwitter } from 'react-icons/fa6';
 
-// --- Custom Icons ---
-// A simple SVG component for the TikTok icon to match the style.
-const TikTokIcon = ({ className }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16.5 6.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"></path>
-    <path d="M12 11v8"></path>
-    <path d="M9 19a3 3 0 0 0 3-3V6.5"></path>
-  </svg>
-);
-
-// A simple SVG component for the WhatsApp icon.
-const WhatsAppIcon = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-    </svg>
-);
-
-
-// --- Custom SVG Logo (White Version) ---
-const ZoomLogoWhite = () => (
-    <svg width="200" height="50" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg" aria-label="ZOOM Logo">
-        <style>
-            {`.line-art-white{fill:none;stroke:white;stroke-miterlimit:10;stroke-width:1.2px;}`}
-        </style>
-        <path className="line-art-white" d="M5.5 5.5h20l-20 29h20"/>
-        <g transform="translate(47.5, 20)">
-            <path d="M 14.5 0 L 7.25 12.57 L -7.25 12.57 L -14.5 0 L -7.25 -12.57 L 7.25 -12.57 Z" fill="none" stroke="white" strokeWidth="1.2"/>
-        </g>
-        <circle className="line-art-white" cx="82.5" cy="20" r="14.5"/>
-        <path className="line-art-white" d="M100.5 34.5l7-29 7 29 7-29 7 29"/>
-    </svg>
-);
-
+// This is the combined and updated component
 const ShopFooter = () => {
   
+  // --- Links from the first Footer component ---
+  const infoLinks = [
+    { name: "About Us", href: "/aboutUs" },
+    { name: "Services", href: "/#services" },
+    // { name: "Online Store", href: "/shop" },
+    { name: "Delivery", href: "/manPower" },
+    { name: "FAQ", href: "/faq" },
+  ];
+
+  const legalLinks = [
+    { name: "Privacy Policy", href: "/privacy-policy" },
+    { name: "Terms & Conditions", href: "/t&c" },
+    { name: "Tracking", href: "/tracking-Form" },
+    { name: "User Data Protection Policy", href: "/user-data-protection" },
+    { name: "Return & Refund Policy", href: "/return&refund" },
+    { name: "Terms of Use", href: "/terms-of-use" },
+  ];
+
   // Function for the "Scroll to Top" button
   const scrollToTop = () => {
     window.scrollTo({
@@ -51,31 +36,48 @@ const ShopFooter = () => {
     <footer className="w-full">
       {/* Main Footer Section */}
       <div className="bg-[#EC2027] text-white font-thin">
-        <div className="container mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+        {/* Changed grid to 5 columns on large screens to accommodate all links */}
+        <div className="container mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           
           {/* Column 1: Logo & Tagline */}
+          <div className="space-y-4 lg:col-span-1">
+            <img 
+              src="https://shaheen-express-shop.vercel.app/assets/i1-Jri-U_l6.png" 
+              alt="Shaheen Express Logo" 
+              className="w-32 h-auto" 
+            />
+            <p className="text-sm tracking-wider">Fast and Reliable Cargo Services by Shaheen Express</p>
+          </div>
+
+          {/* Column 2: Information Links (NEW) */}
           <div className="space-y-4">
-  <img 
-    src="https://shaheen-express-shop.vercel.app/assets/i1-Jri-U_l6.png" 
-    alt="Shaheen Express Logo" 
-    className="w-32 h-auto" 
-  />
-  <p className="text-sm tracking-wider">Fast and Reliable Cargo Services by Shaheen Express</p>
-</div>
-
-
-
-          {/* Column 2: Useful Links */}
-          <div className="space-y-4">
-            <h3 className="text-xl tracking-wide">Useful links</h3>
+            <h3 className="text-xl tracking-wide">Explore</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/return-refund" className="hover:opacity-75 transition-opacity">Return & Refund Policy</a></li>
-              <li><a href="/terms-policy" className="hover:opacity-75 transition-opacity">Terms of Use</a></li>
-              <li><a href="/userData-Protection" className="hover:opacity-75 transition-opacity">User Data Protection Policy</a></li>
+              {infoLinks.map((link) => (
+                <li key={link.name}>
+                  <a href={link.href} className="hover:opacity-75 transition-opacity">
+                    {link.name}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Column 3: Follow Us */}
+          {/* Column 3: Legal & Resources Links (NEW) */}
+          <div className="space-y-4">
+            <h3 className="text-xl tracking-wide">Resources</h3>
+            <ul className="space-y-2 text-sm">
+              {legalLinks.map((link) => (
+                <li key={link.name}>
+                  <a href={link.href} className="hover:opacity-75 transition-opacity">
+                    {link.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 4: Follow Us */}
           <div className="space-y-4">
             <h3 className="text-xl tracking-wide">Follow us</h3>
             <p className="text-sm">Follow us on social media</p>
@@ -83,17 +85,13 @@ const ShopFooter = () => {
               <a href="https://www.instagram.com/alshaheenexpress" className='ml-4' aria-label="Instagram"><Instagram size={20} /></a>
               <a href="https://www.facebook.com/alshaheenexpress" className='mr-10'  aria-label="facebook"><FaFacebookF size={20} /></a>
               <a href="https://x.com/shaheenexpress"  aria-label="x"><FaXTwitter size={20} /></a>
-              {/* <a href="#" aria-label="TikTok"><TikTokIcon className="h-5 w-5" /></a>
-              <a href="#" aria-label="Phone"><Phone size={20} /></a>
-              <a href="#" aria-label="Location"><MapPin size={20} /></a> */}
             </div>
             <p className="text-sm pt-2">SAT - THU 9am - 9pm</p>
           </div>
 
-          {/* Column 4: eFada Image */}
+          {/* Column 5: eFada Image */}
           <div className="flex justify-start lg:justify-center">
             <a href="#" className="text-center">
-              {/* Add your eFada image source here */}
               <img src="https://service.moic.gov.bh/newefadaapi/Images/image-w-2.png" alt="eFada Certified" className="h-20 w-auto" />
               <p className="text-xs mt-1">moic.gov.bh</p>
             </a>
@@ -108,13 +106,11 @@ const ShopFooter = () => {
           
           {/* Copyright */}
           <p className="text-sm tracking-wide text-white font-semibold">
-  © {new Date().getFullYear()} Shaheen Express
-</p>
+            © {new Date().getFullYear()} Shaheen Express
+          </p>
 
-          
           {/* Payment Icons */}
           <div className="flex items-center space-x-2">
-            {/* Add your payment icon image sources here */}
             <img src="https://zoom.bh/wp-content/uploads/2023/10/payment-300x25-1.png" alt="Payment Methods" className="h-8"/>
           </div>
           

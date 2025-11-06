@@ -74,7 +74,7 @@ const Footer = () => {
     { name: "Privacy Policy", href: "/privacy-policy" },
     { name: "Terms & Conditions", href: "/t&c" },
     { name: "Tracking", href: "/tracking-Form" },
-    { name: "Careers", href: "/https://www.talentportal.bh/#pills-profile" },
+    // { name: "Careers", href: "/https://www.talentportal.bh/#pills-profile" },
     { name: "User Data Protection Policy", href: "/user-data-protection" },
     { name: "Return & Refund Policy", href: "/return&refund" },
     { name: "Terms of Use", href: "/terms-of-use" },
