@@ -320,20 +320,7 @@ const OrdersSection = () => {
             </div>
 
             {/* Sort Options */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#EC2027] focus:border-[#EC2027]"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="amount-high">Amount: High to Low</option>
-                <option value="amount-low">Amount: Low to High</option>
-                <option value="status">Status</option>
-              </select>
-            </div>
+
           </div>
         )}
       </div>
