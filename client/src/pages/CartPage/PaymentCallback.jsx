@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Package, X, Loader, FileText } from 'lucide-react';
+import { CheckCircle, Package, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import Invoice from '../../components/Invoice/Invoice';
@@ -137,89 +137,103 @@ const PaymentCallback = ({ onEmptyCart }) => {
   if (orderDetails) {
     return (
       <>
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 min-h-screen flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out] relative overflow-hidden">
+        {/* Blurred Background Overlay */}
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-40"></div>
+        
+        {/* Background Pattern */}
+        <div className="fixed inset-0 bg-gradient-to-br from-green-50/80 to-emerald-50/80 z-40"></div>
+        
+        {/* Main Content */}
+        <div className="fixed inset-0 flex items-center justify-center p-6 pt-20 pb-6 z-50 overflow-y-auto">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto animate-[slideUp_0.3s_ease-out] relative border border-white/20">
             {/* Close Button */}
             <button
               onClick={() => navigate('/my-account?tab=orders')}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-10"
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors z-10 bg-white/80 backdrop-blur-sm rounded-full p-1.5 hover:bg-white/90"
             >
-              <X size={24} />
+              <X size={18} />
             </button>
 
             {/* Success Icon */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 pt-12 pb-8 px-8 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4 animate-[bounce_0.6s_ease-in-out]">
-                <CheckCircle size={48} className="text-white" />
+            <div className="bg-gradient-to-br from-green-50/90 to-emerald-50/90 backdrop-blur-sm pt-8 pb-6 px-6 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500 rounded-full mb-3 animate-[bounce_0.6s_ease-in-out] shadow-lg">
+                <CheckCircle size={36} className="text-white" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Thank You!</h2>
-              <p className="text-gray-600">Your order has been placed successfully</p>
-              <p className="text-sm text-gray-500 mt-2">Redirecting in {countdown} seconds...</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank You!</h2>
+              <p className="text-gray-600 text-sm">Your order has been placed successfully</p>
+              <p className="text-xs text-gray-500 mt-2">Redirecting in {countdown} seconds...</p>
             </div>
 
             {/* Order Details */}
-            <div className="px-8 py-6 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="px-6 py-4 space-y-4 bg-white/50 backdrop-blur-sm">
+              {/* Order Summary Card */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200/50 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <Package size={20} className="text-[#EC2027]" />
+                  <Package size={16} className="text-[#EC2027]" />
                   <h3 className="font-semibold text-gray-800">Order Details</h3>
                 </div>
                 
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Order ID:</span>
-                    <span className="font-mono font-semibold text-gray-800">#{orderDetails.orderId}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Payment Method:</span>
-                    <span className="font-medium text-gray-800">{orderDetails.paymentMethod}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                    <span className="text-gray-600">Total Amount:</span>
-                    <span className="text-2xl font-bold text-[#EC2027]">
-                      {orderDetails.total.toFixed(3)} {orderDetails.currency}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-600 text-sm">Order ID:</span>
+                    <span className="font-mono font-semibold text-gray-800 bg-gray-100/80 backdrop-blur-sm px-2 py-1 rounded text-xs">
+                      #{orderDetails.orderId}
                     </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-600 text-sm">Payment:</span>
+                    <span className="font-medium text-gray-800 bg-blue-50/80 text-blue-800 px-2 py-1 rounded-full text-xs backdrop-blur-sm">
+                      {orderDetails.paymentMethod}
+                    </span>
+                  </div>
+                  
+                  <div className="border-t border-gray-300/50 pt-2 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 font-semibold">Total:</span>
+                      <span className="text-xl font-bold text-[#EC2027]">
+                        {orderDetails.total.toFixed(3)} {orderDetails.currency}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Items Summary */}
+              {/* Items Summary Card - Compact */}
               {orderDetails.items && orderDetails.items.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 max-h-40 overflow-y-auto">
-                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">Items Ordered:</h4>
-                  <div className="space-y-2">
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200/50 shadow-sm">
+                  <h4 className="font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                    <Package size={14} className="text-[#EC2027]" />
+                    Items ({orderDetails.items.length})
+                  </h4>
+                  
+                  <div className="max-h-32 overflow-y-auto space-y-2">
                     {orderDetails.items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-700">{item.name} × {item.quantity}</span>
-                        <span className="text-gray-600">{(item.price * item.quantity).toFixed(3)} {orderDetails.currency}</span>
+                      <div key={index} className="flex justify-between items-center p-2 bg-white/90 backdrop-blur-sm rounded border border-gray-100/50">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-gray-800 text-sm font-medium truncate block">{item.name}</span>
+                          <span className="text-gray-500 text-xs">× {item.quantity}</span>
+                        </div>
+                        <div className="text-right ml-2">
+                          <span className="font-semibold text-gray-800 text-sm">
+                            {(item.price * item.quantity).toFixed(3)}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Action Buttons */}
-              {/* <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowInvoice(true)}
-                  className="flex-1 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <FileText size={16} />
-                  View Invoice
-                </button>
-                <button
-                  onClick={() => navigate('/my-account?tab=orders')}
-                  className="flex-1 bg-[#EC2027] text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  View Orders
-                </button>
-                <button
-                  onClick={() => navigate('/')}
-                  className="flex-1 bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Continue Shopping
-                </button>
-              </div> */}
+              {/* Success Message - Compact */}
+              <div className="text-center py-3 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200/30">
+                <p className="text-gray-600 text-xs">
+                  🎉 Order processed successfully!
+                </p>
+                <p className="text-gray-500 text-xs mt-1">
+                  Confirmation email sent.
+                </p>
+              </div>
             </div>
           </div>
         </div>

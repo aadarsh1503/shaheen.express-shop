@@ -333,7 +333,7 @@ export const sendOrderConfirmationEmails = async (orderData) => {
     // Send email to admin
     const adminMailOptions = {
       from: `"Shaheen Express" <${process.env.EMAIL_FROM}>`,
-      to: 'aadarshchauhan35@gmail.com',
+      to: 'info@shaheen.express',
       subject: `🚨 New Order #${orderData.order.order_id} - Shaheen Express`,
       html: getAdminEmailTemplate(orderData),
     };

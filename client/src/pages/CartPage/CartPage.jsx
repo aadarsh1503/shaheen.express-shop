@@ -156,7 +156,7 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart, load
                       <input type="radio" name="shipping" value="delivery" checked={shippingOption === 'delivery'} onChange={(e) => setShippingOption(e.target.value)} className="mr-3 text-[#EC2027] focus:ring-[#EC2027]" />
                       <span className="text-sm text-gray-700">Delivery <br/><span className="text-xs text-gray-500">المندوب</span></span>
                     </div>
-                    <span className="font-semibold text-sm">{shippingCost.toFixed(3)} {currency}</span>
+                    <span className="font-semibold text-sm">2.200 {currency}</span>
                   </label>
                 </div>
               </div>

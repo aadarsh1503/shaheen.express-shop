@@ -80,6 +80,21 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
     }
   };
 
+  // Get current user info
+  const getCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Handle both response.data.user and response.data directly
+      return response.data.user || response.data;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+  };
+
   const { subtotal, shippingCost, total, vat, currency } = useMemo(() => {
     const subtotalCalc = cartItems.reduce(
       (acc, item) => acc + parseFloat(item.price) * item.quantity,
@@ -135,13 +150,22 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
       setIsProcessing(true);
 
       try {
+        // Get current user info
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          toast.error('Please log in to place an order');
+          setIsProcessing(false);
+          return;
+        }
+
         const response = await axios.post(`${API_URL}/payment/create-session`, {
           total,
           currency,
           customerDetails,
           cartItems,
           shippingOption,
-          paymentMethod: 'cod'
+          paymentMethod: 'cod',
+          userId: currentUser.id
         });
 
         if (response.data.success) {
@@ -197,30 +221,32 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
 
     // ---------------- Card Payment (Credit, Debit, Benefit) ----------------
     if (paymentMethod === 'credit' || paymentMethod === 'debit' || paymentMethod === 'benefit') {
-      console.log('💳 Card Payment Started');
       setIsProcessing(true);
 
       try {
-        console.log('📤 Creating payment session...');
+        // Get current user info
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          toast.error('Please log in to place an order');
+          setIsProcessing(false);
+          return;
+        }
+
         const response = await axios.post(`${API_URL}/payment/create-session`, {
           total,
           currency,
           customerDetails,
           cartItems,
           shippingOption,
-          paymentMethod
+          paymentMethod,
+          userId: currentUser.id
         });
-
-        console.log('✅ Session Response:', response.data);
 
         if (!response.data.success) {
           throw new Error('Session creation failed');
         }
 
         const { sessionId, orderId } = response.data;
-
-        console.log('🆔 sessionId:', sessionId);
-        console.log('📦 orderId:', orderId);
 
         // Store order info in sessionStorage for callback page
         sessionStorage.setItem('pendingOrderId', orderId);
@@ -233,14 +259,29 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
         script.src = 'https://afs.gateway.mastercard.com/checkout/version/61/checkout.js';
 
         script.onload = () => {
-          console.log('📜 MPGS Script Loaded');
-
           window.Checkout.configure({
             session: { id: sessionId },
             order: {
               amount: total.toFixed(3),
               currency,
               id: orderId
+            },
+            customer: {
+              email: customerDetails.email,
+              firstName: customerDetails.firstName,
+              lastName: customerDetails.lastName,
+              phone: customerDetails.phone
+            },
+            billing: {
+              address: {
+                street: customerDetails.streetAddress,
+                street2: customerDetails.apartment || '',
+                city: customerDetails.city,
+                postcodeZip: customerDetails.postcode || '',
+                country: customerDetails.country === 'Bahrain' ? 'BHR' : 
+                         customerDetails.country === 'Saudi Arabia' ? 'SAU' : 
+                         customerDetails.country === 'UAE' ? 'ARE' : 'BHR'
+              }
             },
             interaction: {
               operation: 'PURCHASE',
@@ -249,8 +290,6 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
               }
             }
           });
-
-          console.log('⚙️ Checkout Configured');
           
           // Show payment loader immediately when payment page opens
           setShowPaymentLoader(true);
@@ -265,16 +304,11 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
         };
 
         window.completeCallback = async (resultIndicator) => {
-          console.log('✅ Payment Completed');
-          console.log('🔑 resultIndicator:', resultIndicator);
-
           try {
             const verify = await axios.post(`${API_URL}/payment/verify-payment`, {
               orderId,
               resultIndicator
             });
-
-            console.log('🔍 Verification Response:', verify.data);
 
             if (verify.data.success) {
               const orderData = {
@@ -323,7 +357,6 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
 
   // ---------------- Empty Cart ----------------
   if (cartItems.length === 0 && !showSuccessModal) {
-    console.log('🛑 Cart is empty');
     return (
       <div className="bg-white min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
@@ -339,8 +372,6 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
       </div>
     );
   }
-
-  console.log('🧾 Rendering checkout UI');
 
   return (
     <>
@@ -659,7 +690,12 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
               
               <div className="mt-6">
                 <label className="flex items-center">
-                  <input type="checkbox" checked={termsAccepted} onChange={() => setTermsAccepted(!termsAccepted)} className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
+                  <input 
+                    type="checkbox" 
+                    checked={termsAccepted} 
+                    onChange={() => setTermsAccepted(!termsAccepted)} 
+                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" 
+                  />
                   <span className="ml-2 text-sm text-gray-700">I have read and agree to the website <Link to="/t&c" className="text-teal-600 font-medium hover:underline">terms and conditions</Link><span className="text-red-500">*</span></span>
                 </label>
               </div>

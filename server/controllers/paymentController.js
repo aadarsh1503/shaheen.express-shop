@@ -82,13 +82,20 @@ export const createPaymentSession = async (req, res) => {
       }
     }
 
+    // Get user ID from request body (sent from frontend)
+    const userId = req.body.userId;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
     await db.query(
       `INSERT INTO orders (
         user_id, order_id, total_amount, currency,
         payment_method, payment_status, shipping_address, order_status
       ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, 'PENDING')`,
       [
-        1, // Default user_id
+        userId, // Use user ID from request body
         orderId, 
         calculatedTotal, 
         currency || 'BHD', 
@@ -342,6 +349,13 @@ export const getOrderDetails = async (req, res) => {
 };
 export const getUserOrders = async (req, res) => {
   try {
+    // Get user ID from authenticated token
+    const userId = req.userId; // This comes from the authenticateToken middleware
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
     // Single optimized query using existing database schema
     const [ordersWithItems] = await db.query(`
       SELECT 
@@ -359,7 +373,7 @@ export const getUserOrders = async (req, res) => {
       LEFT JOIN products p ON oi.product_id = p.id AND oi.product_table = 'products'
       WHERE o.user_id = ?
       ORDER BY o.created_at DESC, oi.id ASC
-    `, [1]); // Default user_id
+    `, [userId]); // Use actual user ID from token
 
     // Group items by order
     const ordersMap = new Map();
