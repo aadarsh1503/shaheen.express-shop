@@ -34,6 +34,7 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/LoginPage/RegisterPage';
 import CartPage from './pages/CartPage/CartPage';
 import CheckoutPage from './pages/CartPage/CheckoutPage';
+import PaymentCallback from './pages/CartPage/PaymentCallback';
 import MyAccountPage from './pages/MyAccountPage/MyAccountPage';
 import PrivacyPolicy1 from './pages/privacy/Privacy';
 import UserDataProtectionPolicy1 from './pages/UserData/UserData';
@@ -49,6 +50,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage/ResetPasswordPage';
 import ProductDetail from './pages/ProductDetail/ProductDetail';
 import ShopManagementPage from './pages/frontend-admin/AdminPage/ShopManagementPage';
+import OrdersAdmin from './pages/frontend-admin/AdminPage/OrdersAdmin';
 import { CartProvider , useCart} from './pages/CartPage/CartContext';
 import AdminForgotPasswordPage from './pages/frontend-admin/AdminLoginPage/AdminForgotPasswordPage';
 import AdminResetPasswordPage from './pages/frontend-admin/AdminLoginPage/AdminResetPasswordPage';
@@ -297,20 +299,25 @@ function AppContent() {
     }
   };
 
-  const handleEmptyCart = async () => {
+  const handleEmptyCart = async (silent = false) => {
     if (token) {
         const originalCart = [...serverCartItems];
         setServerCartItems([]); // Optimistic update
         try {
           const config = { headers: { 'Authorization': `Bearer ${token}` } };
           await axios.delete('/api/cart', config);
-          toast.info("Cart has been emptied.");
+          if (!silent) {
+            toast.info("Cart has been emptied.");
+          }
         } catch (error) {
           toast.error("Could not empty the cart.");
           setServerCartItems(originalCart); // Revert on failure
         }
       } else {
         emptyLocalCart();
+        if (!silent) {
+          toast.info("Cart has been emptied.");
+        }
       }
   };
   
@@ -371,6 +378,14 @@ function AppContent() {
           }
         />
         <Route
+          path="/payment-callback"
+          element={
+            <UserProtectedRoute>
+              <PaymentCallback onEmptyCart={handleEmptyCart} />
+            </UserProtectedRoute>
+          }
+        />
+        <Route
           path="/my-account"
           element={<UserProtectedRoute><MyAccountPage /></UserProtectedRoute>}
         />
@@ -384,6 +399,7 @@ function AppContent() {
         <Route path="/admin/categories" element={<AdminProtectedRoute><CategoryAdmin /></AdminProtectedRoute>} />
         <Route path="/admin/Product" element={<AdminProtectedRoute><ProductAdmin /></AdminProtectedRoute>} />
         <Route path="/admin/Product-shop" element={<AdminProtectedRoute><ShopManagementPage /></AdminProtectedRoute>} />
+        <Route path="/admin/orders" element={<AdminProtectedRoute><OrdersAdmin /></AdminProtectedRoute>} />
 
         {/* --- Other/Policy Routes --- */}
         <Route path="/tracking-Form" element={<TrackingForm />} />

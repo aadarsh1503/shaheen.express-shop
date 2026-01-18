@@ -7,6 +7,7 @@ import ProductList from "../Products/ProductList";
 import ProductForm from "../Products/ProductForm";
 import { Plus, Store, LogOut, AlertTriangle, Trash2 } from "lucide-react";
 import { useAuth } from "../../Context/AuthContext";
+import AdminNavigation from "../components/AdminNavigation";
 
 // --- A reusable confirmation modal ---
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children }) => {
@@ -233,11 +234,6 @@ function AdminPage() {
             Product Dashboard
           </h1>
           <div className="flex items-center gap-x-4">
-            <a href="/admin/Product-shop">
-              <button className="flex items-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all transform hover:scale-105">
-                <Store className="mr-2 h-5 w-5" /> Shop Products
-              </button>
-            </a>
             {selectedProducts.length > 0 ? (
               <button
                 onClick={handleBulkDelete}
@@ -254,12 +250,7 @@ function AdminPage() {
                 <Plus className="mr-2 h-5 w-5" /> Add New Product
               </button>
             )}
-            <button
-              onClick={handleLogoutClick}
-              className="flex items-center bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all transform hover:scale-105"
-            >
-              <LogOut className="mr-2 h-5 w-5" /> Logout
-            </button>
+            <AdminNavigation onLogout={handleLogoutClick} />
           </div>
         </div>
 

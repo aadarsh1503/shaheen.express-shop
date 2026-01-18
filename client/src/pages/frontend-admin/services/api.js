@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 // The base URL for your entire backend API
-const API_URL = '/api';
+const API_URL = 'http://localhost:5000/api';
+
+// Export the base URL for use in other components
+export { API_URL };
 
 // ===================================================================
 //  INSTANCE 1: User API Client
@@ -129,6 +132,10 @@ export const updateCartItemQuantity = (productId, quantity) => {
 // ===================================================================
 //  ADMIN-ONLY PROTECTED FUNCTIONS
 // ===================================================================
+// --- Admin Orders Management ---
+export const getAllOrdersAdmin = () => adminApiClient.get('/admin/orders');
+export const updateOrderStatus = (orderId, status) => adminApiClient.put(`/admin/orders/${orderId}/status`, { status });
+
 // --- Original Products ---
 export const deleteProduct = (id) => adminApiClient.delete(`/products/${id}`);
 export const createProduct = (formData) => adminApiClient.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });

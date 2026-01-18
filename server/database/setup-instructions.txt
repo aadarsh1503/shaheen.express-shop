@@ -1,0 +1,52 @@
+DATABASE SETUP INSTRUCTIONS
+============================
+
+OPTION 1: Using MySQL Workbench (Recommended)
+----------------------------------------------
+1. Open MySQL Workbench
+2. Connect to your database
+3. Click "File" > "Open SQL Script"
+4. Navigate to and open "orders_schema.sql"
+5. Click the lightning bolt icon to execute
+6. Verify tables were created by refreshing the schemas panel
+
+OPTION 2: Using Command Line
+-----------------------------
+1. Open terminal/command prompt
+2. Navigate to the server/database directory
+3. Run: mysql -u your_username -p your_database_name < orders_schema.sql
+4. Enter your MySQL password when prompted
+
+OPTION 3: Copy and Paste
+-------------------------
+1. Open orders_schema.sql in a text editor
+2. Copy all the SQL code
+3. Open MySQL Workbench or phpMyAdmin
+4. Paste the code into a new query window
+5. Execute the query
+
+VERIFY INSTALLATION
+-------------------
+Run this query to verify tables were created:
+
+SHOW TABLES LIKE 'orders';
+SHOW TABLES LIKE 'order_items';
+
+You should see both tables listed.
+
+To check the structure:
+
+DESCRIBE orders;
+DESCRIBE order_items;
+
+TROUBLESHOOTING
+---------------
+- If tables already exist, drop them first:
+  DROP TABLE IF EXISTS order_items;
+  DROP TABLE IF EXISTS orders;
+  
+- Then run the schema script again
+
+- Make sure you're connected to the correct database
+
+- Check that your MySQL user has CREATE TABLE permissions

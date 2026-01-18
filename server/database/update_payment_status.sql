@@ -1,0 +1,2 @@
+-- Update payment_status ENUM to include APPROVED
+ALTER TABLE orders MODIFY COLUMN payment_status ENUM('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'APPROVED') DEFAULT 'PENDING';

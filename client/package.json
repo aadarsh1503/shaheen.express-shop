@@ -20,6 +20,8 @@
     "@tsparticles/slim": "^3.8.1",
     "axios": "^1.12.2",
     "framer-motion": "^11.18.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.0.0",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "leaflet-control-geocoder": "^2.4.0",

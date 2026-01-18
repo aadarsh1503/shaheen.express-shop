@@ -1,11 +1,11 @@
-// config/db.js (NEW AND IMPROVED)
+// config/db.js (FIXED - Removed deprecated options)
 
-import mysql from "mysql2/promise"; // <-- IMPORTANT: Use 'mysql2/promise' for async/await
+import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Create the connection POOL. The pool manages multiple connections and handles timeouts automatically.
+// Create the connection POOL with only supported options
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -13,14 +13,21 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,  
   connectionLimit: 10,      
-  queueLimit: 0,             
+  queueLimit: 0,
+  // Keep-alive settings (supported)
+  keepAliveInitialDelay: 0,
+  enableKeepAlive: true,
+  // Connection timeout (supported)
+  connectTimeout: 30000,      // 30 seconds to establish connection
+  // Query timeout (supported)
+  queryTimeout: 60000,        // 60 seconds for queries
 });
 
-// A simple check to see if the pool is able to get a connection
+// Test the pool connection
 pool.getConnection()
   .then(connection => {
     console.log("✅ Connected to MySQL database via connection pool");
-    connection.release(); // IMPORTANT: release the connection back to the pool
+    connection.release();
   })
   .catch(err => {
     console.error("❌ MySQL Pool Connection Error:", err.message);

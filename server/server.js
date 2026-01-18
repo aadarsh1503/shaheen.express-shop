@@ -11,6 +11,8 @@ import shopProductRoutes from './routes/shopProductRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import addressRoutes from './routes/addressRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -67,6 +69,8 @@ app.use('/api/shop/products', shopProductRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminAuthRoutes); 
 app.use('/api/cart', cartRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/addresses', addressRoutes);
 
 // --- Test & Fallback Routes ---
 app.get("/", (req, res) => {

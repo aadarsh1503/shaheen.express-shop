@@ -1,18 +1,18 @@
-// src/pages/MyAccountPage/MyAccountPage.js (Corrected and Final Version)
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, Package, Heart, Download, MapPin, User, Plus, LogOut, UserCircle2,
-  ShoppingBag, ArrowRight,
+  LayoutGrid, Package, Heart, MapPin, User, LogOut, UserCircle2,
+  ShoppingBag, ArrowRight, Settings, Bell, Star, Gift
 } from 'lucide-react';
 
 import BillingAddressForm from './BillingAddressForm';
 import AccountDetailsForm from './AccountDetailsForm';
+import OrdersSection from './OrdersSection';
+import AddressesSection from './AddressesSection';
 import { useAuth } from '../Context/AuthContext';
 import LogoutAnimation from './LogoutAnimation';
-import ConfirmationModal from './ConfirmationModal'; // Import the confirmation modal
-import { getCurrentUser } from '../frontend-admin/services/api'; // Make sure this path is correct
+import ConfirmationModal from './ConfirmationModal';
+import { getCurrentUser } from '../frontend-admin/services/api';
 
 const MyAccountPage = () => {
   const navigate = useNavigate();
@@ -21,8 +21,8 @@ const MyAccountPage = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userDetails, setUserDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // For the success animation
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // For the confirmation modal
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -33,13 +33,20 @@ const MyAccountPage = () => {
         console.error("Failed to fetch user details:", error);
         if (error.response && error.response.status === 401) {
           logout();
-          navigate('/login-shop'); // Redirect on auth error
+          navigate('/login-shop');
         }
       } finally {
         setIsLoading(false);
       }
     };
     fetchUserDetails();
+
+    // Check URL params for tab
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
   }, [logout, navigate]);
 
   // Step 1: User clicks logout, this opens the confirmation modal
@@ -56,7 +63,7 @@ const MyAccountPage = () => {
   // Step 3: The final animation finishes and calls this to actually log out
   const performLogout = () => {
     logout();
-    navigate('/'); // Navigate to the homepage after logging out
+    navigate('/');
   };
 
   const handleDetailsUpdate = (updatedUserDetails) => {
@@ -64,13 +71,11 @@ const MyAccountPage = () => {
   };
 
   const navItems = [
-    { id: 'dashboard', icon: <LayoutGrid size={20} />, label: 'Dashboard' },
-    { id: 'orders', icon: <Package size={20} />, label: 'Orders' },
-    { id: 'wishlist', icon: <Heart size={20} />, label: 'Wishlist' },
-    // { id: 'downloads', icon: <Download size={20} />, label: 'Downloads' },
-    { id: 'addresses', icon: <MapPin size={20} />, label: 'Addresses' },
-    { id: 'account-details', icon: <User size={20} />, label: 'Account details' },
-    // { id: 'appointments', icon: <Plus size={20} />, label: 'Appointments' },
+    { id: 'dashboard', icon: <LayoutGrid size={20} />, label: 'Dashboard', color: 'from-blue-500 to-blue-600' },
+    { id: 'orders', icon: <Package size={20} />, label: 'Orders', color: 'from-[#EC2027] to-red-600' },
+    { id: 'wishlist', icon: <Heart size={20} />, label: 'Wishlist', color: 'from-pink-500 to-pink-600' },
+    { id: 'addresses', icon: <MapPin size={20} />, label: 'Addresses', color: 'from-green-500 to-green-600' },
+    { id: 'account-details', icon: <User size={20} />, label: 'Account Details', color: 'from-purple-500 to-purple-600' },
   ];
 
   const renderContent = () => {
@@ -79,55 +84,134 @@ const MyAccountPage = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
-          <div className="text-gray-600 leading-relaxed space-y-6">
-            <p>
-              Hello <strong className="font-semibold text-gray-800">{userDisplayName}</strong> (not{' '}
-              <strong className="font-semibold text-gray-800">{userDisplayName}</strong>?{' '}
-              <button onClick={handleLogoutClick} className="text-gray-800 hover:underline font-semibold">
-                Log out
-              </button>
-              )
-            </p>
-            <p>
-              From your account dashboard you can view your{' '}
-              <button onClick={() => setActiveTab('orders')} className="font-semibold text-gray-800 hover:underline">
-                recent orders
-              </button>
-              , manage your{' '}
-              <button onClick={() => setActiveTab('addresses')} className="font-semibold text-gray-800 hover:underline">
-                shipping and billing addresses
-              </button>
-              , and{' '}
-              <button onClick={() => setActiveTab('account-details')} className="font-semibold text-gray-800 hover:underline">
-                edit your password and account details
-              </button>
-              .
-            </p>
+          <div className="space-y-8">
+            {/* Welcome Section */}
+            <div className="bg-gradient-to-br from-[#EC2027] to-red-600 rounded-2xl p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full translate-y-12 -translate-x-12"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <UserCircle2 size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Welcome back, {userDisplayName}!</h2>
+                    <p className="text-red-100">Manage your account and track your orders</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-[#EC2027] transition-colors group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#EC2027] to-red-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Package size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">0</p>
+                    <p className="text-gray-600">Total Orders</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-pink-500 transition-colors group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Heart size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">0</p>
+                    <p className="text-gray-600">Wishlist Items</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-green-500 transition-colors group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <MapPin size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">1</p>
+                    <p className="text-gray-600">Saved Addresses</p>
+                  </div>
+                </div>
+              </div>
+            </div> */}
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <Settings className="text-[#EC2027]" size={24} />
+                Quick Actions
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className="flex items-center gap-3 p-4 bg-gradient-to-r from-[#EC2027] to-red-600 text-white rounded-lg hover:shadow-lg transition-all group"
+                >
+                  <Package size={20} />
+                  <span className="font-semibold">View Recent Orders</span>
+                  <ArrowRight size={16} className="ml-auto group-hover:translate-x-1 transition-transform" />
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('addresses')}
+                  className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all group"
+                >
+                  <MapPin size={20} />
+                  <span className="font-semibold">Manage Addresses</span>
+                  <ArrowRight size={16} className="ml-auto group-hover:translate-x-1 transition-transform" />
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('account-details')}
+                  className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all group"
+                >
+                  <User size={20} />
+                  <span className="font-semibold">Update Profile</span>
+                  <ArrowRight size={16} className="ml-auto group-hover:translate-x-1 transition-transform" />
+                </button>
+                
+                <button
+                  onClick={() => navigate('/shop')}
+                  className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all group"
+                >
+                  <ShoppingBag size={20} />
+                  <span className="font-semibold">Continue Shopping</span>
+                  <ArrowRight size={16} className="ml-auto group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+
+            {/* Account Info */}
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Account Information</h3>
+              <div className="text-gray-600 space-y-2">
+                <p>
+                  Hello <strong className="font-semibold text-gray-800">{userDisplayName}</strong> (not{' '}
+                  <strong className="font-semibold text-gray-800">{userDisplayName}</strong>?{' '}
+                  <button onClick={handleLogoutClick} className="text-[#EC2027] hover:underline font-semibold">
+                    Log out
+                  </button>
+                  )
+                </p>
+                <p className="leading-relaxed">
+                  From your account dashboard you can view your recent orders, manage your shipping and billing addresses, 
+                  and edit your password and account details.
+                </p>
+              </div>
+            </div>
           </div>
         );
         
       case 'orders':
-        return (
-          <div className="text-center bg-gray-50/50 p-10 sm:p-16 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
-            <ShoppingBag className="h-16 w-16 text-gray-400 mb-6" strokeWidth={1.5} />
-            <h3 className="text-2xl font-semibold text-gray-800 mb-2">
-              Your Order History is Empty
-            </h3>
-            <p className="text-gray-500 max-w-md mx-auto mb-8">
-              It looks like you haven't placed an order yet. Let's find something you'll love!
-            </p>
-            <button
-              onClick={() => navigate('/shop')}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Start Shopping
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </div>
-        );
+        return <OrdersSection />;
       
       case 'addresses':
-        return <BillingAddressForm userEmail={userDetails?.email} />;
+        return <AddressesSection />;
       case 'account-details':
         return (
           <AccountDetailsForm
@@ -165,42 +249,84 @@ const MyAccountPage = () => {
       {/* Renders the "See you soon!" animation after confirmation */}
       {isLoggingOut && <LogoutAnimation onAnimationComplete={performLogout} />}
     
-      <div className="bg-white min-h-screen font-sans text-gray-800">
+      <div className="bg-gradient-to-br from-gray-50 to-white min-h-screen font-sans text-gray-800">
         <div className="container mx-auto px-4 py-12">
-          <h1 className="text-5xl font-light text-center mb-16">My account</h1>
-          <div className="flex flex-col md:flex-row gap-12">
-            <nav className="md:w-1/4 flex-shrink-0">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                  <UserCircle2 size={32} className="text-gray-500" />
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-light text-gray-800 mb-4">My Account</h1>
+            <p className="text-gray-600 text-lg">Manage your profile, orders, and preferences</p>
+          </div>
+          
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar Navigation */}
+            <nav className="lg:w-1/4 flex-shrink-0">
+              {/* User Profile Card */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#EC2027] to-red-600 rounded-full flex items-center justify-center">
+                    <UserCircle2 size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-800">{userDetails?.name || 'User'}</h3>
+                    <p className="text-gray-500 text-sm truncate">{userDetails?.email}</p>
+                  </div>
                 </div>
-                <span className="text-gray-600 truncate">Hello {userDetails?.name || userDetails?.email}</span>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Active Account</span>
+                </div>
               </div>
-              <ul>
-                {navItems.map((item) => (
-                  <li key={item.id}>
+
+              {/* Navigation Menu */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <ul className="space-y-1 p-2">
+                  {navItems.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex items-center gap-3 py-3 px-4 text-left w-full rounded-xl transition-all duration-200 group ${
+                          activeTab === item.id 
+                            ? 'bg-gradient-to-r from-[#EC2027] to-red-600 text-white shadow-lg' 
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-[#EC2027]'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg ${
+                          activeTab === item.id 
+                            ? 'bg-white bg-opacity-20' 
+                            : 'bg-gray-100 group-hover:bg-[#EC2027] group-hover:bg-opacity-10'
+                        }`}>
+                          {item.icon}
+                        </div>
+                        <span className="font-medium">{item.label}</span>
+                        {activeTab === item.id && (
+                          <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                  
+                  {/* Logout Button */}
+                  <li className="pt-2 border-t border-gray-200 mt-2">
                     <button
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left ${activeTab === item.id ? 'border-b-2 border-black font-medium' : ''}`}
+                      onClick={handleLogoutClick}
+                      className="flex items-center gap-3 py-3 px-4 text-left w-full rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 group"
                     >
-                      {item.icon}
-                      <span>{item.label}</span>
+                      <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-red-100">
+                        <LogOut size={20} />
+                      </div>
+                      <span className="font-medium">Log Out</span>
                     </button>
                   </li>
-                ))}
-                <li>
-                  <button
-                    onClick={handleLogoutClick}
-                    className="flex items-center gap-3 py-3 text-gray-700 hover:text-black transition-colors w-full text-left"
-                  >
-                    <LogOut size={20} />
-                    <span>Log out</span>
-                  </button>
-                </li>
-              </ul>
+                </ul>
+              </div>
             </nav>
-            <main className="md:w-3/4">
-              {renderContent()}
+
+            {/* Main Content */}
+            <main className="lg:w-3/4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm min-h-[600px]">
+                <div className="p-8">
+                  {renderContent()}
+                </div>
+              </div>
             </main>
           </div>
         </div>

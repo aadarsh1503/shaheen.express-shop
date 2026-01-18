@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { getAllShopCategories, createShopCategory, updateShopCategory, deleteShopCategory } from '../services/api';
+import AdminNavigation from '../components/AdminNavigation';
+import { useAuth } from '../../Context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const CategoryAdmin = () => {
   const [categories, setCategories] = useState([]);
   const [currentName, setCurrentName] = useState('');
   const [editingCategory, setEditingCategory] = useState(null); // To track which category is being edited
   const [loading, setLoading] = useState(false);
+  const { logout: logoutAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogoutClick = () => {
+    logoutAdmin();
+    navigate('/admin/login');
+  };
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -75,7 +85,11 @@ const CategoryAdmin = () => {
 
   return (
     <div className="p-6 mt-32 bg-gray-100 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Manage Categories</h2>
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold">Manage Categories</h2>
+        <AdminNavigation onLogout={handleLogoutClick} />
+      </div>
       
       {/* Add/Edit Form */}
       <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded-lg bg-white">

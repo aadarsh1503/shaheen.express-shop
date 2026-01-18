@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../frontend-admin/services/api';
 
 // --- 1. Import your new CSS file ---
 import './ShopHero.css';
@@ -25,7 +26,7 @@ const CategoryLink = ({ id, name }) => (
 );
 
 const ShopHero = () => {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // Initialize as empty array
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,11 +34,13 @@ const ShopHero = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/shop/categories');
-        setCategories(response.data);
+        const response = await axios.get(`${API_URL}/shop/categories`);
+        // Ensure we always have an array
+        setCategories(Array.isArray(response.data) ? response.data : []);
         setError(null);
       } catch (err) {
         setError('Failed to load categories.');
+        setCategories([]); // Set empty array on error
         console.error(err);
       } finally {
         setLoading(false);
@@ -56,7 +59,7 @@ const ShopHero = () => {
         <div className="flex flex-wrap items-start justify-center gap-x-6 whitespace-nowrap max-w-7xl">
           {loading && <p className="text-white">Loading categories...</p>}
           {error && <p className="text-white">{error}</p>}
-          {!loading && !error && categories.map((category) => (
+          {!loading && !error && Array.isArray(categories) && categories.map((category) => (
             <CategoryLink key={category.id} id={category.id} name={category.name} />
           ))}
         </div>

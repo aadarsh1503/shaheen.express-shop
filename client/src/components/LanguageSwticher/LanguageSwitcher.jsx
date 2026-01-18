@@ -19,11 +19,7 @@ const LanguageSwitcher = () => {
             const googleTranslateScript = document.createElement('script');
             googleTranslateScript.id = 'google-translate-script';
             googleTranslateScript.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-            googleTranslateScript.onload = () => console.log("Google Translate script loaded successfully.");
-            googleTranslateScript.onerror = (error) => console.error("Failed to load Google Translate script:", error);
             document.body.appendChild(googleTranslateScript);
-        } else {
-            console.log("Google Translate script already loaded.");
         }
 
         window.googleTranslateElementInit = () => {
@@ -31,9 +27,8 @@ const LanguageSwitcher = () => {
                 new window.google.translate.TranslateElement({
                     pageLanguage: 'en',
                 }, 'google_translate_element');
-                console.log("Google Translate initialized.");
             } catch (error) {
-                console.error("Error initializing Google Translate:", error);
+                // Error initializing Google Translate
             }
         };
     }, []);
@@ -54,7 +49,6 @@ const LanguageSwitcher = () => {
             const shouldShowAnimation = !noAnimationRoutes.some(route => location.pathname.startsWith(route));
 
             toggleLanguageAndDirection(lang);
-            console.log(`Language switched to: ${lang}`);
 
             // 5. Only show the loader if it's an allowed route
             if (shouldShowAnimation) {
@@ -67,7 +61,7 @@ const LanguageSwitcher = () => {
             }, 500);
 
         } catch (error) {
-            console.error("Error changing language:", error);
+            // Error changing language
         }
     };
 
