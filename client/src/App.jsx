@@ -35,6 +35,7 @@ import RegisterPage from './pages/LoginPage/RegisterPage';
 import CartPage from './pages/CartPage/CartPage';
 import CheckoutPage from './pages/CartPage/CheckoutPage';
 import PaymentCallback from './pages/CartPage/PaymentCallback';
+import BenefitPayTest from './pages/BenefitPayTest';
 import MyAccountPage from './pages/MyAccountPage/MyAccountPage';
 import PrivacyPolicy1 from './pages/privacy/Privacy';
 import UserDataProtectionPolicy1 from './pages/UserData/UserData';
@@ -384,6 +385,10 @@ function AppContent() {
               <PaymentCallback onEmptyCart={handleEmptyCart} />
             </UserProtectedRoute>
           }
+        />
+        <Route
+          path="/benefit-pay-test"
+          element={<BenefitPayTest />}
         />
         <Route
           path="/my-account"

@@ -7,13 +7,13 @@ export default defineConfig({
   build: {
     outDir: 'build',
   },
-  // server: {
-  //   proxy: {
-  //     '/api': {
-  //       target: 'hhttp://localhost:5000', 
-  //       changeOrigin: true,
-  //       secure: false,
-  //     },
-  //   },
-  // },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'hhttp://localhost:5000', 
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })

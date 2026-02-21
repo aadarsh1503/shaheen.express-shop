@@ -24,9 +24,16 @@ const PaymentCallback = ({ onEmptyCart }) => {
     const verifyPayment = async () => {
       const resultIndicator = searchParams.get('resultIndicator');
       const sessionVersion = searchParams.get('sessionVersion');
+      const transactionId = searchParams.get('transactionId');
+      const gateway = searchParams.get('gateway');
+      const status = searchParams.get('status');
+      const result = searchParams.get('result'); // BENEFIT PAY result parameter
+      const trackid = searchParams.get('trackid'); // BENEFIT PAY track ID
 
+      console.log('🔍 Payment Callback - Gateway:', gateway);
       console.log('🔍 Payment Callback - resultIndicator:', resultIndicator);
-      console.log('🔍 Payment Callback - sessionVersion:', sessionVersion);
+      console.log('🔍 Payment Callback - transactionId:', transactionId);
+      console.log('🔍 Payment Callback - status:', status);
 
       // Get orderId from URL parameters first, then fallback to sessionStorage
       const orderIdFromUrl = searchParams.get('orderId');
@@ -37,6 +44,7 @@ const PaymentCallback = ({ onEmptyCart }) => {
       const cartItemsStr = sessionStorage.getItem('pendingCartItems');
 
       console.log('📦 Retrieved orderId:', orderId);
+      console.log('💳 Payment method:', paymentMethod);
 
       if (!orderId) {
         console.warn('⚠️ No pending order found, redirecting...');
@@ -45,10 +53,22 @@ const PaymentCallback = ({ onEmptyCart }) => {
       }
 
       try {
-        const response = await axios.post(`${API_URL}/payment/verify-payment`, {
+        const verificationPayload = {
           orderId,
-          resultIndicator
-        });
+          gateway: gateway || (paymentMethod === 'benefitpay' ? 'benefit' : 'mpgs')
+        };
+
+        // Add appropriate verification data based on gateway
+        if (gateway === 'benefit' || paymentMethod === 'benefitpay') {
+          verificationPayload.transactionId = transactionId;
+          verificationPayload.status = status;
+          verificationPayload.result = result; // BENEFIT PAY result
+          verificationPayload.trackid = trackid; // BENEFIT PAY track ID
+        } else {
+          verificationPayload.resultIndicator = resultIndicator;
+        }
+
+        const response = await axios.post(`${API_URL}/payment/verify-payment`, verificationPayload);
 
         console.log('✅ Verification Response:', response.data);
 
@@ -68,7 +88,8 @@ const PaymentCallback = ({ onEmptyCart }) => {
             total: parseFloat(orderTotal),
             currency: orderCurrency,
             paymentMethod: paymentMethod === 'credit' ? 'Credit Card' : 
-                          paymentMethod === 'benefit' ? 'Benefit Pay' : 'Debit Card',
+                          paymentMethod === 'benefitpay' ? 'BENEFIT PAY' : 
+                          paymentMethod === 'debit' ? 'Debit Card' : 'Unknown',
             items: cartItems,
             // Add additional order details for invoice
             order_id: orderId,
@@ -92,14 +113,26 @@ const PaymentCallback = ({ onEmptyCart }) => {
             onEmptyCart(true);
           }
 
-          toast.success('Payment verified successfully!', { toastId: 'payment-success' });
+          const successMessage = gateway === 'benefit' || paymentMethod === 'benefitpay' 
+            ? 'BENEFIT PAY payment verified successfully!' 
+            : 'Payment verified successfully!';
+          
+          toast.success(successMessage, { toastId: 'payment-success' });
         } else {
-          toast.error('Payment verification failed', { toastId: 'payment-error' });
+          const errorMessage = gateway === 'benefit' || paymentMethod === 'benefitpay'
+            ? 'BENEFIT PAY verification failed'
+            : 'Payment verification failed';
+          
+          toast.error(errorMessage, { toastId: 'payment-error' });
           setTimeout(() => navigate('/checkout'), 3000);
         }
       } catch (err) {
         console.error('❌ Verification Error:', err);
-        toast.error('Payment verification failed', { toastId: 'payment-error' });
+        const errorMessage = gateway === 'benefit' || paymentMethod === 'benefitpay'
+          ? 'BENEFIT PAY verification failed'
+          : 'Payment verification failed';
+        
+        toast.error(errorMessage, { toastId: 'payment-error' });
         setTimeout(() => navigate('/checkout'), 3000);
       } finally {
         setIsVerifying(false);

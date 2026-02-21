@@ -1,6 +1,7 @@
 import axios from 'axios';
 import db from '../config/db.js';
 import { sendOrderConfirmationEmails } from '../services/emailService.js';
+import { createBenefitPaySession, verifyBenefitPayment, handleBenefitPayResponse } from '../services/benefitPayService.js';
 
 // MPGS Configuration
 const MPGS_MERCHANT_ID = 'TEST120000000';
@@ -8,7 +9,7 @@ const MPGS_API_PASSWORD = '15b6e5a449357e0aa74f752b1f848f0a';
 const MPGS_BASE_URL = 'https://afs.gateway.mastercard.com/api/rest/version/61';
 const MPGS_AUTH = Buffer.from(`merchant.${MPGS_MERCHANT_ID}:${MPGS_API_PASSWORD}`).toString('base64');
 
-// Create MPGS Session
+// Create Payment Session (MPGS or BENEFIT PAY)
 export const createPaymentSession = async (req, res) => {
   try {
     const { total, currency, customerDetails, cartItems, shippingOption, paymentMethod } = req.body;
@@ -22,21 +23,45 @@ export const createPaymentSession = async (req, res) => {
     const orderId = `ORD${timestamp}${randomStr}`.substring(0, 25);
 
     let sessionId = null;
+    let paymentUrl = null;
 
     // Cash on Delivery
     if (paymentMethod === 'cod') {
       sessionId = 'COD_' + orderId;
       
       // For COD, we need to send emails immediately after order creation
-      // Get order items and send emails
       setTimeout(async () => {
         try {
           await sendOrderEmails(orderId);
         } catch (error) {
           console.error('❌ Error sending COD emails:', error);
         }
-      }, 1000); // Small delay to ensure order is fully created
-    } else {
+      }, 1000);
+    } 
+    // BENEFIT PAY - Separate Gateway
+    else if (paymentMethod === 'benefitpay') {
+      console.log('🔄 Creating BENEFIT PAY session...');
+      
+      const benefitPayResult = await createBenefitPaySession({
+        orderId,
+        total: calculatedTotal,
+        currency: currency || 'BHD',
+        customerDetails
+      });
+
+      if (!benefitPayResult.success) {
+        throw new Error(benefitPayResult.error || 'BENEFIT PAY session creation failed');
+      }
+
+      sessionId = benefitPayResult.sessionId;
+      paymentUrl = benefitPayResult.paymentUrl;
+      
+      console.log('✅ BENEFIT PAY session created:', { sessionId, paymentUrl });
+    } 
+    // MPGS for Credit/Debit Cards
+    else if (paymentMethod === 'credit' || paymentMethod === 'debit') {
+      console.log('🔄 Creating MPGS session for:', paymentMethod);
+      
       const createSessionPayload = {
         apiOperation: 'CREATE_CHECKOUT_SESSION',
         order: {
@@ -47,7 +72,7 @@ export const createPaymentSession = async (req, res) => {
         },
         interaction: {
           operation: 'PURCHASE',
-          returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?orderId=${orderId}`,
+          returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?orderId=${orderId}&gateway=mpgs`,
           displayControl: {
             billingAddress: 'HIDE',
             customerEmail: 'MANDATORY'
@@ -73,6 +98,7 @@ export const createPaymentSession = async (req, res) => {
         );
 
         sessionId = mpgsResponse.data.session.id;
+        console.log('✅ MPGS session created:', sessionId);
       } catch (mpgsError) {
         console.error('❌ MPGS API ERROR');
         console.error('Status:', mpgsError.response?.status);
@@ -80,6 +106,8 @@ export const createPaymentSession = async (req, res) => {
         console.error('Message:', mpgsError.message);
         throw new Error('Failed to create payment session with MPGS');
       }
+    } else {
+      throw new Error(`Unsupported payment method: ${paymentMethod}`);
     }
 
     // Get user ID from request body (sent from frontend)
@@ -95,7 +123,7 @@ export const createPaymentSession = async (req, res) => {
         payment_method, payment_status, shipping_address, order_status
       ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, 'PENDING')`,
       [
-        userId, // Use user ID from request body
+        userId,
         orderId, 
         calculatedTotal, 
         currency || 'BHD', 
@@ -136,13 +164,25 @@ export const createPaymentSession = async (req, res) => {
       }
     }
 
-    res.status(200).json({
+    const response = {
       success: true,
       sessionId,
       orderId,
       paymentMethod,
-      checkoutUrl: 'https://afs.gateway.mastercard.com/checkout/version/82/checkout.js'
-    });
+      gateway: paymentMethod === 'benefitpay' ? 'benefit' : 'mpgs'
+    };
+
+    // Add payment URL for BENEFIT PAY
+    if (paymentMethod === 'benefitpay' && paymentUrl) {
+      response.paymentUrl = paymentUrl;
+    }
+
+    // Add checkout URL for MPGS
+    if (paymentMethod === 'credit' || paymentMethod === 'debit') {
+      response.checkoutUrl = 'https://afs.gateway.mastercard.com/checkout/version/82/checkout.js';
+    }
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('🔥 createPaymentSession ERROR');
@@ -154,10 +194,10 @@ export const createPaymentSession = async (req, res) => {
   }
 };
 
-// Verify Payment
+// Verify Payment (MPGS or BENEFIT PAY)
 export const verifyPayment = async (req, res) => {
   try {
-    const { orderId, resultIndicator } = req.body;
+    const { orderId, resultIndicator, transactionId, gateway } = req.body;
 
     const [orders] = await db.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
 
@@ -167,32 +207,146 @@ export const verifyPayment = async (req, res) => {
 
     const order = orders[0];
 
+    // Cash on Delivery
     if (order.payment_method === 'cod') {
       await db.query(
         'UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE order_id = ?',
         ['APPROVED', orderId]
       );
 
-      // Get order items and send emails for COD
       await sendOrderEmails(orderId);
-
       return res.json({ success: true, paymentStatus: 'APPROVED' });
     }
 
-    // Store transaction ID for card payments (including Benefit Pay)
-    await db.query(
-      'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
-      ['APPROVED', resultIndicator || 'CONFIRMED', orderId]
-    );
+    // BENEFIT PAY Verification
+    if (order.payment_method === 'benefitpay' || gateway === 'benefit') {
+      console.log('🔍 Verifying BENEFIT PAY payment:', { orderId, transactionId, resultIndicator });
+      
+      // For BENEFIT PAY, we can verify using either transactionId or resultIndicator
+      const paymentId = transactionId || resultIndicator || orderId;
+      const benefitVerification = await verifyBenefitPayment(paymentId, orderId);
+      
+      if (benefitVerification.success && benefitVerification.status === 'APPROVED') {
+        await db.query(
+          'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
+          ['APPROVED', 'CONFIRMED', orderId]
+        );
 
-    // Send order confirmation emails
-    await sendOrderEmails(orderId);
+        await sendOrderEmails(orderId);
+        
+        console.log('✅ BENEFIT PAY payment verified successfully');
+        return res.json({ 
+          success: true, 
+          paymentStatus: 'APPROVED',
+          gateway: 'benefit',
+          transactionId: benefitVerification.transactionId
+        });
+      } else {
+        console.log('❌ BENEFIT PAY payment verification failed:', benefitVerification.error);
+        await db.query(
+          'UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE order_id = ?',
+          ['FAILED', orderId]
+        );
+        
+        return res.status(400).json({ 
+          success: false, 
+          message: benefitVerification.error || 'BENEFIT PAY payment verification failed',
+          gateway: 'benefit'
+        });
+      }
+    }
 
-    res.json({ success: true, paymentStatus: 'APPROVED' });
+    // MPGS Verification (Credit/Debit Cards)
+    if (order.payment_method === 'credit' || order.payment_method === 'debit' || gateway === 'mpgs') {
+      console.log('🔍 Verifying MPGS payment:', { orderId, resultIndicator });
+      
+      // Store transaction ID for card payments
+      await db.query(
+        'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
+        ['APPROVED', resultIndicator || 'CONFIRMED', orderId]
+      );
+
+      await sendOrderEmails(orderId);
+      
+      console.log('✅ MPGS payment verified successfully');
+      return res.json({ 
+        success: true, 
+        paymentStatus: 'APPROVED',
+        gateway: 'mpgs'
+      });
+    }
+
+    // Fallback for unknown payment methods
+    return res.status(400).json({ 
+      success: false, 
+      message: `Unsupported payment method: ${order.payment_method}` 
+    });
 
   } catch (error) {
     console.error('❌ verifyPayment ERROR:', error.message);
     res.status(500).json({ success: false, message: 'Payment verification failed' });
+  }
+};
+
+// BENEFIT PAY Response Handler (for callback URL)
+export const handleBenefitPayCallback = async (req, res) => {
+  try {
+    console.log('🔔 BENEFIT PAY Callback received:', req.query);
+    
+    const responseResult = await handleBenefitPayResponse(req.query);
+    
+    if (responseResult.success) {
+      const { orderId, transactionId, status } = responseResult;
+      
+      // Update order status based on BENEFIT PAY response
+      let paymentStatus = 'PENDING';
+      let orderStatus = 'PENDING';
+      
+      if (status === 'APPROVED') {
+        paymentStatus = 'APPROVED';
+        orderStatus = 'CONFIRMED';
+        
+        // Send confirmation emails
+        await sendOrderEmails(orderId);
+      } else if (status === 'FAILED' || status === 'CANCELLED') {
+        paymentStatus = 'FAILED';
+        orderStatus = 'CANCELLED';
+      }
+      
+      await db.query(
+        'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
+        [paymentStatus, orderStatus, orderId]
+      );
+      
+      console.log(`✅ BENEFIT PAY callback processed: ${orderId} -> ${paymentStatus}`);
+      
+      // Redirect to frontend callback page
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId}&status=${status}`;
+      res.redirect(redirectUrl);
+    } else {
+      console.error('❌ BENEFIT PAY callback processing failed:', responseResult.error);
+      const errorUrl = `${process.env.FRONTEND_URL}/checkout?error=benefit_callback_failed`;
+      res.redirect(errorUrl);
+    }
+    
+  } catch (error) {
+    console.error('❌ BENEFIT PAY callback error:', error.message);
+    const errorUrl = `${process.env.FRONTEND_URL}/checkout?error=benefit_callback_error`;
+    res.redirect(errorUrl);
+  }
+};
+
+// BENEFIT PAY Webhook Handler (if needed)
+export const handleBenefitPayWebhook = async (req, res) => {
+  try {
+    console.log('🔔 BENEFIT PAY Webhook received:', req.body);
+    
+    // Process webhook if BENEFIT PAY sends additional notifications
+    res.status(200).json({ success: true, message: 'Webhook received' });
+    
+  } catch (error) {
+    console.error('❌ BENEFIT PAY webhook error:', error.message);
+    res.status(500).json({ success: false, message: 'Webhook processing failed' });
   }
 };
 

@@ -219,8 +219,8 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
       return;
     }
 
-    // ---------------- Card Payment (Credit, Debit, Benefit) ----------------
-    if (paymentMethod === 'credit' || paymentMethod === 'debit' || paymentMethod === 'benefit') {
+    // ---------------- Card Payment (Credit, Debit) ----------------
+    if (paymentMethod === 'credit' || paymentMethod === 'debit') {
       setIsProcessing(true);
 
       try {
@@ -307,7 +307,8 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
           try {
             const verify = await axios.post(`${API_URL}/payment/verify-payment`, {
               orderId,
-              resultIndicator
+              resultIndicator,
+              gateway: 'mpgs'
             });
 
             if (verify.data.success) {
@@ -315,8 +316,7 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                 orderId,
                 total,
                 currency,
-                paymentMethod: paymentMethod === 'credit' ? 'Credit Card' : 
-                              paymentMethod === 'benefit' ? 'Benefit Pay' : 'Debit Card',
+                paymentMethod: paymentMethod === 'credit' ? 'Credit Card' : 'Debit Card',
                 items: cartItems,
                 // Add additional fields for invoice
                 order_id: orderId,
@@ -350,6 +350,61 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
       } catch (err) {
         console.error('❌ Payment Error:', err);
         toast.error('Payment initialization failed');
+        setIsProcessing(false);
+      }
+    }
+
+    // ---------------- BENEFIT PAY ----------------
+    if (paymentMethod === 'benefitpay') {
+      setIsProcessing(true);
+
+      try {
+        // Get current user info
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          toast.error('Please log in to place an order');
+          setIsProcessing(false);
+          return;
+        }
+
+        const response = await axios.post(`${API_URL}/payment/create-session`, {
+          total,
+          currency,
+          customerDetails,
+          cartItems,
+          shippingOption,
+          paymentMethod,
+          userId: currentUser.id
+        });
+
+        if (!response.data.success) {
+          throw new Error('BENEFIT PAY session creation failed');
+        }
+
+        const { sessionId, orderId, paymentUrl } = response.data;
+
+        // Store order info in sessionStorage for callback page
+        sessionStorage.setItem('pendingOrderId', orderId);
+        sessionStorage.setItem('pendingPaymentMethod', paymentMethod);
+        sessionStorage.setItem('pendingOrderTotal', total.toString());
+        sessionStorage.setItem('pendingOrderCurrency', currency);
+        sessionStorage.setItem('pendingCartItems', JSON.stringify(cartItems));
+
+        // Show payment loader
+        setShowPaymentLoader(true);
+
+        // Redirect to BENEFIT PAY payment page
+        if (paymentUrl) {
+          // Always redirect to real BENEFIT PAY gateway
+          console.log('🔗 Redirecting to BENEFIT PAY:', paymentUrl);
+          window.location.href = paymentUrl;
+        } else {
+          throw new Error('BENEFIT PAY payment URL not received');
+        }
+
+      } catch (err) {
+        console.error('❌ BENEFIT PAY Error:', err);
+        toast.error('BENEFIT PAY initialization failed');
         setIsProcessing(false);
       }
     }
@@ -654,20 +709,20 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                     />
                   </label>
                 </div>
-                <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'benefit' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
+                <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'benefitpay' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded flex items-center justify-center">
                         <span className="text-white text-xs font-bold">B</span>
                       </div>
-                      <span className="font-medium text-gray-700">Benefit Pay</span>
-                      {/* <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Popular in Bahrain</span> */}
+                      <span className="font-medium text-gray-700">BENEFIT PAY</span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Bahrain</span>
                     </div>
                     <input 
                       type="radio" 
                       name="payment" 
-                      value="benefit" 
-                      checked={paymentMethod === 'benefit'} 
+                      value="benefitpay" 
+                      checked={paymentMethod === 'benefitpay'} 
                       onChange={(e) => setPaymentMethod(e.target.value)} 
                       className="text-[#EC2027] focus:ring-[#EC2027]" 
                     />
