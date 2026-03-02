@@ -1,5 +1,14 @@
 import express from 'express';
-import { createPaymentSession, verifyPayment, getUserOrders, getOrderDetails, handleBenefitPayCallback, handleBenefitPayWebhook } from '../controllers/paymentController.js';
+import { 
+  createPaymentSession, 
+  verifyPayment, 
+  getUserOrders, 
+  getOrderDetails, 
+  handleBenefitPayCallback, 
+  handleBenefitPayWebhook,
+  createBenefitPayQR,
+  checkPaymentStatus
+} from '../controllers/paymentController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { testBenefitPayConnectivity } from '../utils/networkTest.js';
 
@@ -11,8 +20,15 @@ router.post('/create-session', createPaymentSession);
 // Verify payment after callback
 router.post('/verify-payment', verifyPayment);
 
-// BENEFIT PAY callback endpoint (GET request from BENEFIT PAY gateway)
+// BENEFIT PAY QR Code payment
+router.post('/benefit-qr', createBenefitPayQR);
+
+// Check payment status (for QR polling)
+router.get('/check-status/:orderId', checkPaymentStatus);
+
+// BENEFIT PAY callback endpoint (accepts both GET and POST from BENEFIT PAY gateway)
 router.get('/benefit-callback', handleBenefitPayCallback);
+router.post('/benefit-callback', handleBenefitPayCallback);
 
 // BENEFIT PAY webhook endpoint (POST request for notifications)
 router.post('/benefit-webhook', handleBenefitPayWebhook);

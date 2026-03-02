@@ -19,13 +19,34 @@ export const CartProvider = ({ children }) => {
     }
   });
 
+  // Sync to localStorage whenever cartItems changes
   useEffect(() => {
     try {
       localStorage.setItem('cart', JSON.stringify(cartItems));
+      // Dispatch storage event for cross-tab sync
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error("Could not save cart data to localStorage", error);
     }
   }, [cartItems]);
+
+  // Listen for storage changes from other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'cart' || e.type === 'storage') {
+        try {
+          const localData = localStorage.getItem('cart');
+          const parsedData = localData ? JSON.parse(localData) : [];
+          setCartItems(parsedData);
+        } catch (error) {
+          console.error("Could not sync cart from localStorage", error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // --- Cart Management Functions ---
 

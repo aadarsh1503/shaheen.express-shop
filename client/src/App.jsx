@@ -380,11 +380,7 @@ function AppContent() {
         />
         <Route
           path="/payment-callback"
-          element={
-            <UserProtectedRoute>
-              <PaymentCallback onEmptyCart={handleEmptyCart} />
-            </UserProtectedRoute>
-          }
+          element={<PaymentCallback onEmptyCart={handleEmptyCart} />}
         />
         <Route
           path="/benefit-pay-test"

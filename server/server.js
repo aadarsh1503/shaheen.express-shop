@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import dotenv from "dotenv";
 import db from "./config/db.js";
@@ -15,8 +14,6 @@ import addressRoutes from './routes/addressRoutes.js';
 
 dotenv.config();
 const app = express();
-
-// CORS removed - using Vite proxy instead
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 

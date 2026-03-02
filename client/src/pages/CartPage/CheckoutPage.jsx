@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, CreditCard, CheckCircle, Package, X, FileText, MapPin, Plus, Edit } from 'lucide-react';
+import { Lock, CreditCard, CheckCircle, Package, X, FileText, MapPin, Plus, Edit, QrCode } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import Invoice from '../../components/Invoice/Invoice';
@@ -40,29 +40,53 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
-  const [successCountdown, setSuccessCountdown] = useState(5);
+  const [successCountdown, setSuccessCountdown] = useState(10);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchSavedAddresses();
+    
+    // Get shipping option from sessionStorage (set by CartPage)
+    const savedShippingOption = sessionStorage.getItem('shippingOption');
+    if (savedShippingOption) {
+      setShippingOption(savedShippingOption);
+    }
   }, []);
 
-  // Countdown timer for success modal
+  // Countdown timer for success modal - reset and start countdown
   useEffect(() => {
-    if (showSuccessModal && orderDetails && successCountdown > 0) {
-      const timer = setTimeout(() => {
-        setSuccessCountdown(successCountdown - 1);
+    if (showSuccessModal && orderDetails) {
+      // Reset countdown to 10 when modal first opens
+      setSuccessCountdown(10);
+      
+      // Start countdown interval
+      const interval = setInterval(() => {
+        setSuccessCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            // Refresh the entire website and navigate to orders
+            window.location.href = '/my-account?tab=orders';
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
-      return () => clearTimeout(timer);
-    } else if (successCountdown === 0 && showSuccessModal) {
-      navigate('/my-account?tab=orders');
+      
+      return () => clearInterval(interval);
     }
-  }, [successCountdown, showSuccessModal, orderDetails, navigate]);
+  }, [showSuccessModal, orderDetails]);
 
   const fetchSavedAddresses = async () => {
+    setIsLoadingAddresses(true);
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        setIsLoadingAddresses(false);
+        return;
+      }
+      
       const response = await axios.get(`${API_URL}/addresses`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -77,6 +101,9 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
       }
     } catch (error) {
       console.error('Error fetching addresses:', error);
+      // Don't show error toast, just continue with empty addresses
+    } finally {
+      setIsLoadingAddresses(false);
     }
   };
 
@@ -96,15 +123,18 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
   };
 
   const { subtotal, shippingCost, total, vat, currency } = useMemo(() => {
-    const subtotalCalc = cartItems.reduce(
-      (acc, item) => acc + parseFloat(item.price) * item.quantity,
+    // Safety check: ensure cartItems is an array
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    
+    const subtotalCalc = items.reduce(
+      (acc, item) => acc + parseFloat(item.price || 0) * (item.quantity || 0),
       0
     );
 
     const shippingCostCalc = shippingOption === 'delivery' ? 2.200 : 0;
     const totalCalc = subtotalCalc + shippingCostCalc;
     const vatCalc = totalCalc * 0.10;
-    const currencyLabel = cartItems.length > 0 ? cartItems[0].currency : 'BHD';
+    const currencyLabel = items.length > 0 ? items[0].currency : 'BHD';
 
     return {
       subtotal: subtotalCalc,
@@ -381,7 +411,7 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
           throw new Error('BENEFIT PAY session creation failed');
         }
 
-        const { sessionId, orderId, paymentUrl } = response.data;
+        const { sessionId, orderId, paymentUrl, paymentHtml } = response.data;
 
         // Store order info in sessionStorage for callback page
         sessionStorage.setItem('pendingOrderId', orderId);
@@ -393,13 +423,19 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
         // Show payment loader
         setShowPaymentLoader(true);
 
-        // Redirect to BENEFIT PAY payment page
+        // Handle payment URL or HTML response
         if (paymentUrl) {
-          // Always redirect to real BENEFIT PAY gateway
+          // Direct redirect to payment URL
           console.log('🔗 Redirecting to BENEFIT PAY:', paymentUrl);
           window.location.href = paymentUrl;
+        } else if (paymentHtml) {
+          // Display HTML payment page in new window or iframe
+          console.log('📄 Displaying BENEFIT PAY HTML page');
+          const paymentWindow = window.open('', '_self');
+          paymentWindow.document.write(paymentHtml);
+          paymentWindow.document.close();
         } else {
-          throw new Error('BENEFIT PAY payment URL not received');
+          throw new Error('BENEFIT PAY payment URL or HTML not received');
         }
 
       } catch (err) {
@@ -408,10 +444,71 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
         setIsProcessing(false);
       }
     }
+
+    // ---------------- BENEFIT PAY QR ----------------
+    // Temporarily disabled until BENEFIT PAY provides QR integration details
+    /*
+    if (paymentMethod === 'benefitpay-qr') {
+      setIsProcessing(true);
+
+      try {
+        // Get current user info
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          toast.error('Please log in to place an order');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Create order with BENEFIT PAY QR (send 'benefitpay-qr' to backend)
+        const response = await axios.post(`http://localhost:5000/api/payment/create-session`, {
+          total,
+          currency,
+          customerDetails,
+          cartItems,
+          shippingOption,
+          paymentMethod: 'benefitpay-qr', // Send QR payment method to backend
+          userId: currentUser.id
+        });
+
+        if (!response.data.success) {
+          throw new Error('Order creation failed');
+        }
+
+        const { orderId, paymentUrl } = response.data;
+
+        // Store order info
+        sessionStorage.setItem('pendingOrderId', orderId);
+        sessionStorage.setItem('pendingPaymentMethod', 'benefitpay-qr');
+        sessionStorage.setItem('pendingOrderTotal', total.toString());
+        sessionStorage.setItem('pendingOrderCurrency', currency);
+        sessionStorage.setItem('pendingCartItems', JSON.stringify(cartItems));
+
+        // Show payment loader
+        setShowPaymentLoader(true);
+
+        // Redirect directly to BENEFIT PAY page (which will show QR code)
+        if (paymentUrl) {
+          console.log('🔗 Redirecting to BENEFIT PAY QR page:', paymentUrl);
+          window.location.href = paymentUrl;
+        } else {
+          throw new Error('BENEFIT PAY payment URL not received');
+        }
+
+      } catch (err) {
+        console.error('❌ BENEFIT PAY QR Error:', err);
+        toast.error('QR payment initialization failed');
+        setIsProcessing(false);
+      }
+    }
+    */
   };
 
   // ---------------- Empty Cart ----------------
-  if (cartItems.length === 0 && !showSuccessModal) {
+  // Safety check: ensure cartItems is an array
+  const items = Array.isArray(cartItems) ? cartItems : [];
+  
+  if (items.length === 0 && !showSuccessModal) {
     return (
       <div className="bg-white min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
@@ -428,105 +525,20 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
     );
   }
 
+  // Show loading state while addresses are being fetched
+  if (isLoadingAddresses) {
+    return (
+      <div className="bg-white min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EC2027] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Success Modal */}
-      {showSuccessModal && orderDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out] relative overflow-hidden">
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setShowSuccessModal(false);
-                navigate('/my-account?tab=orders');
-              }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-10"
-            >
-              <X size={24} />
-            </button>
-
-            {/* Success Icon */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 pt-12 pb-8 px-8 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4 animate-[bounce_0.6s_ease-in-out]">
-                <CheckCircle size={48} className="text-white" />
-              </div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Thank You!</h2>
-              <p className="text-gray-600">Your order has been placed successfully</p>
-              <p className="text-sm text-gray-500 mt-2">Redirecting to orders in {successCountdown} seconds...</p>
-            </div>
-
-            {/* Order Details */}
-            <div className="px-8 py-6 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <Package size={20} className="text-[#EC2027]" />
-                  <h3 className="font-semibold text-gray-800">Order Details</h3>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Order ID:</span>
-                    <span className="font-mono font-semibold text-gray-800">#{orderDetails.orderId}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Payment Method:</span>
-                    <span className="font-medium text-gray-800">{orderDetails.paymentMethod}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                    <span className="text-gray-600">Total Amount:</span>
-                    <span className="text-2xl font-bold text-[#EC2027]">
-                      {orderDetails.total.toFixed(3)} {orderDetails.currency}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Items Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 max-h-40 overflow-y-auto">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Items Ordered:</h4>
-                <div className="space-y-2">
-                  {orderDetails.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-gray-700">{item.name} × {item.quantity}</span>
-                      <span className="text-gray-600">{(item.price * item.quantity).toFixed(3)} {orderDetails.currency}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowInvoice(true)}
-                  className="flex-1 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <FileText size={16} />
-                  View Invoice
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    navigate('/my-account?tab=orders');
-                  }}
-                  className="flex-1 bg-[#EC2027] text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  View Orders
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    navigate('/');
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white font-sans">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h1 className="text-4xl font-light text-center text-gray-800 mb-12">Checkout</h1>
@@ -654,7 +666,7 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
             <div className="bg-[#F8F8F8] p-8 rounded-lg border border-gray-200">
               <h2 className="text-2xl font-light text-gray-800 mb-6 pb-4 border-b border-gray-300">Your order</h2>
               <div className="space-y-4">
-                {cartItems.map(item => (
+                {items.map(item => (
                   <div key={item.cart_item_id || item.id} className="flex justify-between items-center text-sm">
                     <div className="flex items-center gap-4">
                       <img src={item.image1 || item.image} alt={item.name} className="w-16 h-16 object-contain bg-white border rounded-md" />
@@ -716,7 +728,7 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                         <span className="text-white text-xs font-bold">B</span>
                       </div>
                       <span className="font-medium text-gray-700">BENEFIT PAY</span>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Bahrain</span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Card</span>
                     </div>
                     <input 
                       type="radio" 
@@ -728,6 +740,26 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                     />
                   </label>
                 </div>
+                {/* BENEFIT PAY QR - Temporarily disabled until BENEFIT PAY provides QR integration details */}
+                {/* 
+                <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'benefitpay-qr' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <QrCode size={20} className="text-purple-600" />
+                      <span className="font-medium text-gray-700">BENEFIT PAY QR</span>
+                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">Scan & Pay</span>
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      value="benefitpay-qr" 
+                      checked={paymentMethod === 'benefitpay-qr'} 
+                      onChange={(e) => setPaymentMethod(e.target.value)} 
+                      className="text-[#EC2027] focus:ring-[#EC2027]" 
+                    />
+                  </label>
+                </div>
+                */}
                 <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <span className="font-medium text-gray-700">Cash on Delivery</span>
@@ -779,6 +811,102 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
           message="Please wait while we securely process your payment..."
           type="processing"
         />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && orderDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out] relative overflow-hidden">
+            {/* Progress Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 z-10">
+              <div 
+                className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-1000 ease-linear"
+                style={{ width: `${((10 - successCountdown) / 10) * 100}%` }}
+              />
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowSuccessModal(false);
+                window.location.href = '/my-account?tab=orders';
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-20"
+            >
+              <X size={24} />
+            </button>
+
+            {/* Success Icon */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 pt-12 pb-8 px-8 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4 animate-[bounce_0.6s_ease-in-out]">
+                <CheckCircle size={48} className="text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Thank You!</h2>
+              <p className="text-gray-600">Your order has been placed successfully</p>
+              <p className="text-sm text-gray-500 mt-2">Redirecting in {successCountdown} seconds...</p>
+            </div>
+
+            {/* Order Details */}
+            <div className="px-8 py-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Package size={20} className="text-[#EC2027]" />
+                  <h3 className="font-semibold text-gray-800">Order Details</h3>
+                </div>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Order ID:</span>
+                    <span className="font-mono font-semibold text-gray-800">#{orderDetails.orderId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment:</span>
+                    <span className="font-medium text-gray-800">{orderDetails.paymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                    <span className="text-gray-600">Total:</span>
+                    <span className="text-2xl font-bold text-[#EC2027]">
+                      {orderDetails.total.toFixed(3)} {orderDetails.currency}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Summary */}
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 max-h-40 overflow-y-auto">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Items ({orderDetails.items.length})</h4>
+                <div className="space-y-2">
+                  {orderDetails.items.map((item, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span className="text-gray-700">{item.name} × {item.quantity}</span>
+                      <span className="text-gray-600">{(item.price * item.quantity).toFixed(3)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowInvoice(true)}
+                  className="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileText size={16} />
+                  Invoice
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    window.location.href = '/my-account?tab=orders';
+                  }}
+                  className="flex-1 bg-[#EC2027] text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  View Orders
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import db from '../config/db.js';
 import { sendOrderConfirmationEmails } from '../services/emailService.js';
-import { createBenefitPaySession, verifyBenefitPayment, handleBenefitPayResponse } from '../services/benefitPayService.js';
+import { createBenefitPaySession, verifyBenefitPayment, handleBenefitPayResponse, createBenefitPayQRSession } from '../services/benefitPayService.js';
 
 // MPGS Configuration
 const MPGS_MERCHANT_ID = 'TEST120000000';
@@ -24,6 +24,7 @@ export const createPaymentSession = async (req, res) => {
 
     let sessionId = null;
     let paymentUrl = null;
+    let formData = null; // Add formData variable
 
     // Cash on Delivery
     if (paymentMethod === 'cod') {
@@ -55,8 +56,29 @@ export const createPaymentSession = async (req, res) => {
 
       sessionId = benefitPayResult.sessionId;
       paymentUrl = benefitPayResult.paymentUrl;
+      formData = benefitPayResult.formData; // Store formData
       
       console.log('✅ BENEFIT PAY session created:', { sessionId, paymentUrl });
+    }
+    // BENEFIT PAY QR - Uses different API
+    else if (paymentMethod === 'benefitpay-qr') {
+      console.log('🔄 Creating BENEFIT PAY QR session...');
+      
+      const benefitPayQRResult = await createBenefitPayQRSession({
+        orderId,
+        total: calculatedTotal,
+        currency: currency || 'BHD',
+        customerDetails
+      });
+
+      if (!benefitPayQRResult.success) {
+        throw new Error(benefitPayQRResult.error || 'BENEFIT PAY QR session creation failed');
+      }
+
+      sessionId = benefitPayQRResult.sessionId;
+      paymentUrl = benefitPayQRResult.qrCodeUrl || benefitPayQRResult.paymentUrl;
+      
+      console.log('✅ BENEFIT PAY QR session created:', { sessionId, paymentUrl });
     } 
     // MPGS for Credit/Debit Cards
     else if (paymentMethod === 'credit' || paymentMethod === 'debit') {
@@ -169,12 +191,15 @@ export const createPaymentSession = async (req, res) => {
       sessionId,
       orderId,
       paymentMethod,
-      gateway: paymentMethod === 'benefitpay' ? 'benefit' : 'mpgs'
+      gateway: (paymentMethod === 'benefitpay' || paymentMethod === 'benefitpay-qr') ? 'benefit' : 'mpgs'
     };
 
-    // Add payment URL for BENEFIT PAY
-    if (paymentMethod === 'benefitpay' && paymentUrl) {
+    // Add payment URL for BENEFIT PAY (both card and QR)
+    if ((paymentMethod === 'benefitpay' || paymentMethod === 'benefitpay-qr') && paymentUrl) {
       response.paymentUrl = paymentUrl;
+      if (formData) {
+        response.formData = formData;
+      }
     }
 
     // Add checkout URL for MPGS
@@ -222,36 +247,28 @@ export const verifyPayment = async (req, res) => {
     if (order.payment_method === 'benefitpay' || gateway === 'benefit') {
       console.log('🔍 Verifying BENEFIT PAY payment:', { orderId, transactionId, resultIndicator });
       
-      // For BENEFIT PAY, we can verify using either transactionId or resultIndicator
-      const paymentId = transactionId || resultIndicator || orderId;
-      const benefitVerification = await verifyBenefitPayment(paymentId, orderId);
+      // For BENEFIT PAY, the callback already updated the order status
+      // So we just need to check the current order status
+      const [updatedOrders] = await db.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
+      const updatedOrder = updatedOrders[0];
       
-      if (benefitVerification.success && benefitVerification.status === 'APPROVED') {
-        await db.query(
-          'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
-          ['APPROVED', 'CONFIRMED', orderId]
-        );
-
-        await sendOrderEmails(orderId);
-        
+      console.log('📊 Current order status:', updatedOrder.payment_status);
+      
+      if (updatedOrder.payment_status === 'APPROVED') {
         console.log('✅ BENEFIT PAY payment verified successfully');
         return res.json({ 
           success: true, 
           paymentStatus: 'APPROVED',
           gateway: 'benefit',
-          transactionId: benefitVerification.transactionId
+          transactionId: transactionId
         });
       } else {
-        console.log('❌ BENEFIT PAY payment verification failed:', benefitVerification.error);
-        await db.query(
-          'UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE order_id = ?',
-          ['FAILED', orderId]
-        );
-        
+        console.log('❌ BENEFIT PAY payment verification failed - Status:', updatedOrder.payment_status);
         return res.status(400).json({ 
           success: false, 
-          message: benefitVerification.error || 'BENEFIT PAY payment verification failed',
-          gateway: 'benefit'
+          message: `Payment ${updatedOrder.payment_status.toLowerCase()}`,
+          gateway: 'benefit',
+          paymentStatus: updatedOrder.payment_status
         });
       }
     }
@@ -291,12 +308,52 @@ export const verifyPayment = async (req, res) => {
 // BENEFIT PAY Response Handler (for callback URL)
 export const handleBenefitPayCallback = async (req, res) => {
   try {
-    console.log('🔔 BENEFIT PAY Callback received:', req.query);
+    console.log('\n🔔 ========== BENEFIT PAY CALLBACK RECEIVED ==========');
+    console.log('📥 Request Method:', req.method);
+    console.log('📥 Query Params:', JSON.stringify(req.query, null, 2));
+    console.log('📥 Body Params:', JSON.stringify(req.body, null, 2));
+    console.log('📥 Headers:', JSON.stringify(req.headers, null, 2));
     
-    const responseResult = await handleBenefitPayResponse(req.query);
+    // BENEFIT PAY can send data in query or body
+    const responseData = Object.keys(req.body).length > 0 ? req.body : req.query;
+    
+    console.log('📊 Processing response data:', JSON.stringify(responseData, null, 2));
+    
+    // Check if this is a server-to-server callback (from BENEFIT PAY server)
+    // vs browser redirect (from user's browser)
+    const isServerCallback = req.headers['user-agent']?.includes('Java') || 
+                            req.headers['ecid-context'] || 
+                            responseData.trandata; // Encrypted data = server callback
+    
+    console.log('🔍 Callback Type:', isServerCallback ? 'Server-to-Server' : 'Browser Redirect');
+    
+    const responseResult = await handleBenefitPayResponse(responseData);
     
     if (responseResult.success) {
       const { orderId, transactionId, status } = responseResult;
+      
+      // Check current order status to prevent duplicate processing
+      const [existingOrders] = await db.query('SELECT payment_status FROM orders WHERE order_id = ?', [orderId]);
+      
+      if (existingOrders.length > 0) {
+        const currentStatus = existingOrders[0].payment_status;
+        
+        // If order is already APPROVED, don't downgrade it
+        if (currentStatus === 'APPROVED' && status !== 'APPROVED') {
+          console.log(`⚠️ Order ${orderId} already APPROVED, ignoring callback with status: ${status}`);
+          
+          // For server callback, send 200 OK acknowledgement
+          if (isServerCallback) {
+            console.log('✅ Sending 200 OK acknowledgement to BENEFIT PAY server');
+            return res.status(200).send('OK');
+          }
+          
+          // For browser redirect, redirect to success page
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId}&status=APPROVED`;
+          console.log('🔗 Redirecting browser to success URL:', redirectUrl);
+          return res.redirect(redirectUrl);
+        }
+      }
       
       // Update order status based on BENEFIT PAY response
       let paymentStatus = 'PENDING';
@@ -320,18 +377,45 @@ export const handleBenefitPayCallback = async (req, res) => {
       
       console.log(`✅ BENEFIT PAY callback processed: ${orderId} -> ${paymentStatus}`);
       
-      // Redirect to frontend callback page
-      const redirectUrl = `${process.env.FRONTEND_URL}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId}&status=${status}`;
+      // For server-to-server callback, send 200 OK acknowledgement
+      if (isServerCallback) {
+        console.log('✅ Sending 200 OK acknowledgement to BENEFIT PAY server');
+        return res.status(200).send('OK');
+      }
+      
+      // For browser redirect, redirect to frontend callback page
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId}&status=${status}`;
+      console.log('🔗 Redirecting browser to:', redirectUrl);
       res.redirect(redirectUrl);
     } else {
       console.error('❌ BENEFIT PAY callback processing failed:', responseResult.error);
-      const errorUrl = `${process.env.FRONTEND_URL}/checkout?error=benefit_callback_failed`;
+      
+      // For server callback, send 200 OK even on error to prevent retries
+      if (isServerCallback) {
+        console.log('⚠️ Sending 200 OK to BENEFIT PAY server despite error');
+        return res.status(200).send('ERROR');
+      }
+      
+      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?error=benefit_callback_failed&gateway=benefit`;
+      console.log('🔗 Redirecting browser to error URL:', errorUrl);
       res.redirect(errorUrl);
     }
     
   } catch (error) {
     console.error('❌ BENEFIT PAY callback error:', error.message);
-    const errorUrl = `${process.env.FRONTEND_URL}/checkout?error=benefit_callback_error`;
+    
+    // Check if this is a server callback
+    const isServerCallback = req.headers['user-agent']?.includes('Java') || 
+                            req.headers['ecid-context'];
+    
+    // For server callback, send 200 OK to prevent retries
+    if (isServerCallback) {
+      console.log('⚠️ Sending 200 OK to BENEFIT PAY server despite exception');
+      return res.status(200).send('ERROR');
+    }
+    
+    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?error=benefit_callback_error&gateway=benefit`;
+    console.log('🔗 Redirecting browser to error URL:', errorUrl);
     res.redirect(errorUrl);
   }
 };
@@ -428,7 +512,91 @@ const sendOrderEmails = async (orderId) => {
   }
 };
 
-// Get Single Order Details for Invoice
+// Create BENEFIT PAY QR Code Payment
+export const createBenefitPayQR = async (req, res) => {
+  try {
+    const { orderId, amount, currency } = req.body;
+
+    console.log('🔄 Creating BENEFIT PAY QR Code for order:', orderId);
+
+    // Get order details from database
+    const [orders] = await db.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
+    
+    if (!orders.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orders[0];
+    
+    // Parse customer details from shipping address
+    const customerDetails = {};
+    if (order.shipping_address) {
+      const lines = order.shipping_address.split('\n');
+      const nameLine = lines[0] || '';
+      const phoneLine = lines[3] || '';
+      const emailLine = lines[4] || '';
+
+      customerDetails.firstName = nameLine.split(' ')[0] || '';
+      customerDetails.lastName = nameLine.split(' ').slice(1).join(' ') || '';
+      customerDetails.phone = phoneLine.replace('Phone: ', '') || '';
+      customerDetails.email = emailLine.replace('Email: ', '') || '';
+    }
+
+    // Create BENEFIT PAY QR session using their API
+    const benefitPayResult = await createBenefitPayQRSession({
+      orderId,
+      total: amount,
+      currency: currency || 'BHD',
+      customerDetails
+    });
+
+    if (!benefitPayResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: benefitPayResult.error || 'Failed to create QR payment'
+      });
+    }
+
+    // Return the QR code URL (BENEFIT PAY payment page with QR)
+    res.json({
+      success: true,
+      qrCodeUrl: benefitPayResult.qrCodeUrl,
+      paymentId: benefitPayResult.sessionId
+    });
+
+  } catch (error) {
+    console.error('❌ BENEFIT PAY QR Error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create QR payment'
+    });
+  }
+};
+
+// Check Payment Status (for QR polling)
+export const checkPaymentStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const [orders] = await db.query('SELECT payment_status FROM orders WHERE order_id = ?', [orderId]);
+
+    if (!orders.length) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    res.json({
+      success: true,
+      paymentStatus: orders[0].payment_status
+    });
+
+  } catch (error) {
+    console.error('❌ Check Payment Status Error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to check payment status' });
+  }
+};
 export const getOrderDetails = async (req, res) => {
   try {
     const { orderId } = req.params;

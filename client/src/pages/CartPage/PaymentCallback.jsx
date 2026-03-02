@@ -12,6 +12,8 @@ const PaymentCallback = ({ onEmptyCart }) => {
   const navigate = useNavigate();
   const [isVerifying, setIsVerifying] = useState(true);
   const [orderDetails, setOrderDetails] = useState(null);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [countdown, setCountdown] = useState(5);
   const [showInvoice, setShowInvoice] = useState(false);
   const hasVerified = useRef(false);
@@ -23,25 +25,157 @@ const PaymentCallback = ({ onEmptyCart }) => {
 
     const verifyPayment = async () => {
       const resultIndicator = searchParams.get('resultIndicator');
-      const sessionVersion = searchParams.get('sessionVersion');
       const transactionId = searchParams.get('transactionId');
       const gateway = searchParams.get('gateway');
       const status = searchParams.get('status');
       const result = searchParams.get('result'); // BENEFIT PAY result parameter
       const trackid = searchParams.get('trackid'); // BENEFIT PAY track ID
-
-      console.log('🔍 Payment Callback - Gateway:', gateway);
-      console.log('🔍 Payment Callback - resultIndicator:', resultIndicator);
-      console.log('🔍 Payment Callback - transactionId:', transactionId);
-      console.log('🔍 Payment Callback - status:', status);
-
-      // Get orderId from URL parameters first, then fallback to sessionStorage
+      const errorParam = searchParams.get('error'); // Check for error parameter
+      const ErrorText = searchParams.get('ErrorText'); // BENEFIT PAY error text
+      const authRespCode = searchParams.get('authRespCode'); // Auth response code
+      
+      // TEST MODE: Allow manual testing with test=success parameter
+      const testMode = searchParams.get('test');
+      
+      // Get orderId and other data from URL/sessionStorage
       const orderIdFromUrl = searchParams.get('orderId');
       const orderId = orderIdFromUrl || sessionStorage.getItem('pendingOrderId');
       const paymentMethod = sessionStorage.getItem('pendingPaymentMethod');
       const orderTotal = sessionStorage.getItem('pendingOrderTotal');
       const orderCurrency = sessionStorage.getItem('pendingOrderCurrency');
       const cartItemsStr = sessionStorage.getItem('pendingCartItems');
+
+      console.log('🔍 Payment Callback - Gateway:', gateway);
+      console.log('🔍 Payment Callback - resultIndicator:', resultIndicator);
+      console.log('🔍 Payment Callback - transactionId:', transactionId);
+      console.log('🔍 Payment Callback - status:', status);
+      console.log('🔍 Payment Callback - error:', errorParam);
+      console.log('🔍 Payment Callback - result:', result);
+      console.log('🔍 Payment Callback - ErrorText:', ErrorText);
+      console.log('🔍 Payment Callback - authRespCode:', authRespCode);
+      console.log('🔍 Payment Callback - TEST MODE:', testMode);
+      console.log('📦 Retrieved orderId:', orderId);
+      console.log('💳 Payment method:', paymentMethod);
+
+      // TEST MODE: Simulate successful payment
+      if (testMode === 'success' && (gateway === 'benefit' || paymentMethod === 'benefitpay')) {
+        console.log('✅ TEST MODE: Simulating successful BENEFIT PAY payment');
+        
+        sessionStorage.removeItem('pendingOrderId');
+        sessionStorage.removeItem('pendingPaymentMethod');
+        sessionStorage.removeItem('pendingOrderTotal');
+        sessionStorage.removeItem('pendingOrderCurrency');
+        sessionStorage.removeItem('pendingCartItems');
+        
+        const cartItems = cartItemsStr ? JSON.parse(cartItemsStr) : [];
+        
+        const orderData = {
+          orderId: orderId || 'TEST123',
+          total: parseFloat(orderTotal || '100'),
+          currency: orderCurrency || 'BHD',
+          paymentMethod: 'BENEFIT PAY',
+          items: cartItems,
+          order_id: orderId || 'TEST123',
+          total_amount: orderTotal || '100',
+          payment_status: 'COMPLETED',
+          payment_method: 'benefitpay',
+          created_at: new Date().toISOString(),
+          first_name: 'Test',
+          last_name: 'Customer',
+          email: 'test@example.com',
+          phone: '+973 XXXX XXXX',
+          street_address: 'Test Address',
+          city: 'Manama',
+          country: 'Bahrain'
+        };
+        
+        setOrderDetails(orderData);
+        
+        // Empty cart after successful payment
+        if (onEmptyCart) {
+          await onEmptyCart(true); // Make it async
+        }
+        
+        // Force refresh cart state
+        localStorage.removeItem('cart');
+        window.dispatchEvent(new Event('storage'));
+        
+        toast.success('TEST MODE: Payment successful!', { toastId: 'payment-success' });
+        setIsVerifying(false);
+        return;
+      }
+      
+      if (!orderId) {
+        console.warn('⚠️ No pending order found, redirecting...');
+        setTimeout(() => navigate('/my-account?tab=orders'), 2000);
+        return;
+      }
+
+      // Check if payment was cancelled or failed
+      if (errorParam || status === 'cancelled' || status === 'failed' || status === 'FAILED' || result === 'CANCELLED' || result === 'FAILED' || ErrorText) {
+        console.warn('⚠️ Payment was cancelled or failed');
+        setPaymentFailed(true);
+        setErrorMessage(
+          ErrorText ? `Payment failed: ${ErrorText}` :
+          errorParam === 'payment_failed' ? 'Payment processing failed' :
+          status === 'cancelled' || result === 'CANCELLED' ? 'Payment was cancelled' :
+          status === 'failed' || status === 'FAILED' || result === 'FAILED' ? 'Payment failed' :
+          'Payment could not be completed'
+        );
+        setIsVerifying(false);
+        return;
+      }
+      
+      // For BENEFIT PAY with result=CAPTURED or authRespCode=00, mark as success
+      if ((result === 'CAPTURED' || authRespCode === '00') && (gateway === 'benefit' || paymentMethod === 'benefitpay')) {
+        console.log('✅ BENEFIT PAY payment successful from URL params');
+        // Skip verification, directly show success
+        const orderIdToUse = orderIdFromUrl || orderId;
+        
+        // Clear session storage
+        sessionStorage.removeItem('pendingOrderId');
+        sessionStorage.removeItem('pendingPaymentMethod');
+        sessionStorage.removeItem('pendingOrderTotal');
+        sessionStorage.removeItem('pendingOrderCurrency');
+        sessionStorage.removeItem('pendingCartItems');
+        
+        const cartItems = cartItemsStr ? JSON.parse(cartItemsStr) : [];
+        
+        const orderData = {
+          orderId: orderIdToUse,
+          total: parseFloat(orderTotal),
+          currency: orderCurrency,
+          paymentMethod: 'BENEFIT PAY',
+          items: cartItems,
+          order_id: orderIdToUse,
+          total_amount: orderTotal,
+          payment_status: 'COMPLETED',
+          payment_method: paymentMethod,
+          created_at: new Date().toISOString(),
+          first_name: 'Customer',
+          last_name: '',
+          email: 'customer@email.com',
+          phone: '+973 XXXX XXXX',
+          street_address: 'Customer Address',
+          city: 'Manama',
+          country: 'Bahrain'
+        };
+        
+        setOrderDetails(orderData);
+        
+        // Empty cart after successful payment
+        if (onEmptyCart) {
+          await onEmptyCart(true); // Make it async
+        }
+        
+        // Force refresh cart state
+        localStorage.removeItem('cart');
+        window.dispatchEvent(new Event('storage'));
+        
+        toast.success('BENEFIT PAY payment successful!', { toastId: 'payment-success' });
+        setIsVerifying(false);
+        return;
+      }
 
       console.log('📦 Retrieved orderId:', orderId);
       console.log('💳 Payment method:', paymentMethod);
@@ -108,10 +242,14 @@ const PaymentCallback = ({ onEmptyCart }) => {
 
           setOrderDetails(orderData);
 
-          // Empty the cart (silently, no toast)
+          // Empty the cart after successful payment
           if (onEmptyCart) {
-            onEmptyCart(true);
+            await onEmptyCart(true); // Make it async
           }
+          
+          // Force refresh cart state
+          localStorage.removeItem('cart');
+          window.dispatchEvent(new Event('storage'));
 
           const successMessage = gateway === 'benefit' || paymentMethod === 'benefitpay' 
             ? 'BENEFIT PAY payment verified successfully!' 
@@ -123,8 +261,9 @@ const PaymentCallback = ({ onEmptyCart }) => {
             ? 'BENEFIT PAY verification failed'
             : 'Payment verification failed';
           
+          setPaymentFailed(true);
+          setErrorMessage(errorMessage);
           toast.error(errorMessage, { toastId: 'payment-error' });
-          setTimeout(() => navigate('/checkout'), 3000);
         }
       } catch (err) {
         console.error('❌ Verification Error:', err);
@@ -132,8 +271,9 @@ const PaymentCallback = ({ onEmptyCart }) => {
           ? 'BENEFIT PAY verification failed'
           : 'Payment verification failed';
         
+        setPaymentFailed(true);
+        setErrorMessage(errorMessage);
         toast.error(errorMessage, { toastId: 'payment-error' });
-        setTimeout(() => navigate('/checkout'), 3000);
       } finally {
         setIsVerifying(false);
       }
@@ -151,9 +291,10 @@ const PaymentCallback = ({ onEmptyCart }) => {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (countdown === 0) {
-      navigate('/my-account?tab=orders');
+      // Refresh the entire website and navigate to orders
+      window.location.href = '/my-account?tab=orders';
     }
-  }, [countdown, isVerifying, orderDetails, navigate]);
+  }, [countdown, isVerifying, orderDetails]);
 
   // Loading state
   if (isVerifying) {
@@ -163,6 +304,61 @@ const PaymentCallback = ({ onEmptyCart }) => {
         message="Please wait while we confirm your transaction..."
         type="verifying"
       />
+    );
+  }
+
+  // Error/Cancellation state
+  if (paymentFailed) {
+    return (
+      <>
+        {/* Blurred Background Overlay */}
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-40"></div>
+        
+        {/* Background Pattern */}
+        <div className="fixed inset-0 bg-gradient-to-br from-red-50/80 to-orange-50/80 z-40"></div>
+        
+        {/* Main Content */}
+        <div className="fixed inset-0 flex items-center justify-center p-6 pt-20 pb-6 z-50 overflow-y-auto">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl max-w-sm w-full animate-[slideUp_0.3s_ease-out] relative border border-white/20">
+            {/* Sad Face Icon */}
+            <div className="bg-gradient-to-br from-red-50/90 to-orange-50/90 backdrop-blur-sm pt-8 pb-6 px-6 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500 rounded-full mb-3 shadow-lg">
+                <span className="text-4xl">😔</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Cancelled</h2>
+              <p className="text-gray-600 text-sm">{errorMessage || 'Your payment was not completed'}</p>
+              <p className="text-xs text-gray-500 mt-2">Don't worry, you can try again</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-6 py-6 space-y-3 bg-white/50 backdrop-blur-sm">
+              <button
+                onClick={() => navigate('/cart')}
+                className="w-full bg-[#EC2027] hover:bg-[#d11d22] text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Package size={18} />
+                Return to Cart
+              </button>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+              >
+                Continue Shopping
+              </button>
+            </div>
+
+            {/* Help Text */}
+            <div className="px-6 pb-6">
+              <div className="text-center py-3 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200/30">
+                <p className="text-gray-600 text-xs">
+                  Need help? Contact our support team
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -181,7 +377,7 @@ const PaymentCallback = ({ onEmptyCart }) => {
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto animate-[slideUp_0.3s_ease-out] relative border border-white/20">
             {/* Close Button */}
             <button
-              onClick={() => navigate('/my-account?tab=orders')}
+              onClick={() => window.location.href = '/my-account?tab=orders'}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors z-10 bg-white/80 backdrop-blur-sm rounded-full p-1.5 hover:bg-white/90"
             >
               <X size={18} />

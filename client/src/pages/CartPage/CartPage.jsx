@@ -171,7 +171,14 @@ const CartPage = ({ cartItems, onQuantityChange, onRemoveItem, onEmptyCart, load
             <Link 
               to="/checkout" 
               className={`block text-center w-full text-white font-bold py-4 rounded-lg mt-8 transition-all duration-300 ${cartItems.some(i => !i.inStock || i.stockQuantity <=0) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#EC2027] hover:bg-red-700 hover:shadow-lg'}`}
-              onClick={(e) => { if(cartItems.some(i => !i.inStock || i.stockQuantity <=0)) e.preventDefault(); }}
+              onClick={(e) => { 
+                if(cartItems.some(i => !i.inStock || i.stockQuantity <=0)) {
+                  e.preventDefault();
+                } else {
+                  // Save shipping option to sessionStorage for checkout page
+                  sessionStorage.setItem('shippingOption', shippingOption);
+                }
+              }}
             >
               Proceed to Checkout
             </Link>
