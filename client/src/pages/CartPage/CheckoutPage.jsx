@@ -28,11 +28,11 @@ const InputField = ({ id, label, placeholder, required = true, type = 'text', cl
 };
 
 // ---------------- CheckoutPage ----------------
-const CheckoutPage = ({ cartItems, onEmptyCart }) => {
+const CheckoutPage = ({ cartItems = [], onEmptyCart }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [shippingOption, setShippingOption] = useState('delivery');
-  const [paymentMethod, setPaymentMethod] = useState('credit');
+  const [paymentMethod, setPaymentMethod] = useState('benefitpay');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const [showInvoice, setShowInvoice] = useState(false);
@@ -42,6 +42,7 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
   const [successCountdown, setSuccessCountdown] = useState(10);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
+  const [isLoadingCart, setIsLoadingCart] = useState(true);
 
   const navigate = useNavigate();
 
@@ -53,6 +54,13 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
     if (savedShippingOption) {
       setShippingOption(savedShippingOption);
     }
+
+    // Mark cart as loaded after a brief delay to ensure props are received
+    const timer = setTimeout(() => {
+      setIsLoadingCart(false);
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Countdown timer for success modal - reset and start countdown
@@ -525,8 +533,8 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
     );
   }
 
-  // Show loading state while addresses are being fetched
-  if (isLoadingAddresses) {
+  // Show loading state while addresses or cart are being loaded
+  if (isLoadingAddresses || isLoadingCart) {
     return (
       <div className="bg-white min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
@@ -689,6 +697,8 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
               </div>
               
               <div className="mt-8 space-y-3">
+                {/* Credit Card - Temporarily disabled */}
+                {/*
                 <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'credit' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
@@ -705,6 +715,9 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                     />
                   </label>
                 </div>
+                */}
+                {/* Debit Card - Temporarily disabled */}
+                {/*
                 <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'debit' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
@@ -721,6 +734,7 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                     />
                   </label>
                 </div>
+                */}
                 <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'benefitpay' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
@@ -728,7 +742,6 @@ const CheckoutPage = ({ cartItems, onEmptyCart }) => {
                         <span className="text-white text-xs font-bold">B</span>
                       </div>
                       <span className="font-medium text-gray-700">BENEFIT PAY</span>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Card</span>
                     </div>
                     <input 
                       type="radio" 
