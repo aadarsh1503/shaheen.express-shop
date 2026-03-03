@@ -738,9 +738,11 @@ const CheckoutPage = ({ cartItems = [], onEmptyCart }) => {
                 <div className={`p-4 border-2 rounded-md bg-white cursor-pointer transition-all ${paymentMethod === 'benefitpay' ? 'border-[#EC2027] bg-red-50' : 'border-gray-300'}`}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">B</span>
-                      </div>
+                      <img 
+                        src="https://res.cloudinary.com/ds1dt3qub/image/upload/v1772543597/images_2_cjqs7d.png" 
+                        alt="BENEFIT PAY" 
+                        className="h-6 w-auto object-contain"
+                      />
                       <span className="font-medium text-gray-700">BENEFIT PAY</span>
                     </div>
                     <input 
