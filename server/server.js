@@ -42,6 +42,18 @@ app.get("/api/test-db", async (req, res) => {
   }
 });
 
+// Global error handler — must return plain text for benefit-callback routes
+// to prevent Express's default HTML error page from breaking the payment gateway
+app.use((err, req, res, next) => {
+  console.error('🔥 Unhandled Express error:', err.message);
+  if (req.path.includes('benefit-callback')) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.set('Content-Type', 'text/plain');
+    return res.status(200).send(`REDIRECT=${frontendUrl}/payment-callback?error=server_error&gateway=benefit`);
+  }
+  res.status(500).json({ success: false, message: err.message });
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

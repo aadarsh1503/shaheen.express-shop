@@ -306,117 +306,99 @@ export const verifyPayment = async (req, res) => {
 };
 
 // BENEFIT PAY Response Handler (for callback URL)
+// IMPORTANT: This endpoint MUST return plain text "REDIRECT=someURL" only.
+// No HTML, no JSON. Benefit Pay will reject any other response format.
 export const handleBenefitPayCallback = async (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+  // Helper: send plain-text redirect response (the ONLY valid response format)
+  const sendRedirect = (url) => {
+    res.set('Content-Type', 'text/plain');
+    res.set('Cache-Control', 'no-cache, no-store');
+    return res.status(200).send(`REDIRECT=${url}`);
+  };
+
   try {
     console.log('\n🔔 ========== BENEFIT PAY CALLBACK RECEIVED ==========');
     console.log('📥 Request Method:', req.method);
     console.log('📥 Query Params:', JSON.stringify(req.query, null, 2));
     console.log('📥 Body Params:', JSON.stringify(req.body, null, 2));
-    console.log('📥 Headers:', JSON.stringify(req.headers, null, 2));
-    
-    // BENEFIT PAY can send data in query or body
+
     const responseData = Object.keys(req.body).length > 0 ? req.body : req.query;
-    
     console.log('📊 Processing response data:', JSON.stringify(responseData, null, 2));
-    
-    // Check if this is a server-to-server callback (from BENEFIT PAY server)
-    // vs browser redirect (from user's browser)
-    const isServerCallback = req.headers['user-agent']?.includes('Java') || 
-                            req.headers['ecid-context'] || 
-                            responseData.trandata; // Encrypted data = server callback
-    
-    console.log('🔍 Callback Type:', isServerCallback ? 'Server-to-Server' : 'Browser Redirect');
-    
-    const responseResult = await handleBenefitPayResponse(responseData);
-    
-    if (responseResult.success) {
-      const { orderId, transactionId, status } = responseResult;
-      
-      // Check current order status to prevent duplicate processing
+
+    let responseResult;
+    try {
+      responseResult = await handleBenefitPayResponse(responseData);
+    } catch (parseError) {
+      console.error('❌ handleBenefitPayResponse threw:', parseError.message);
+      return sendRedirect(`${frontendUrl}/payment-callback?error=parse_error&gateway=benefit`);
+    }
+
+    if (!responseResult.success) {
+      console.error('❌ BENEFIT PAY callback processing failed:', responseResult.error);
+      return sendRedirect(`${frontendUrl}/payment-callback?error=benefit_callback_failed&gateway=benefit`);
+    }
+
+    const { orderId, transactionId, status } = responseResult;
+
+    if (!orderId) {
+      console.error('❌ No orderId in callback response');
+      return sendRedirect(`${frontendUrl}/payment-callback?error=missing_order_id&gateway=benefit`);
+    }
+
+    try {
       const [existingOrders] = await db.query('SELECT payment_status FROM orders WHERE order_id = ?', [orderId]);
-      
+
+      let finalStatus = status;
+
       if (existingOrders.length > 0) {
         const currentStatus = existingOrders[0].payment_status;
-        
-        // If order is already APPROVED, don't downgrade it
+
         if (currentStatus === 'APPROVED' && status !== 'APPROVED') {
           console.log(`⚠️ Order ${orderId} already APPROVED, ignoring callback with status: ${status}`);
-          
-          // For server callback, send 200 OK acknowledgement
-          if (isServerCallback) {
-            console.log('✅ Sending 200 OK acknowledgement to BENEFIT PAY server');
-            return res.status(200).send('OK');
+          finalStatus = 'APPROVED';
+        } else {
+          let paymentStatus = 'PENDING';
+          let orderStatus = 'PENDING';
+
+          if (status === 'APPROVED') {
+            paymentStatus = 'APPROVED';
+            orderStatus = 'CONFIRMED';
+          } else if (status === 'FAILED' || status === 'CANCELLED') {
+            paymentStatus = 'FAILED';
+            orderStatus = 'CANCELLED';
           }
-          
-          // For browser redirect, redirect to success page
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId}&status=APPROVED`;
-          console.log('🔗 Redirecting browser to success URL:', redirectUrl);
-          return res.redirect(redirectUrl);
+
+          await db.query(
+            'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
+            [paymentStatus, orderStatus, orderId]
+          );
+
+          console.log(`✅ BENEFIT PAY callback processed: ${orderId} -> ${paymentStatus}`);
+
+          if (status === 'APPROVED') {
+            // Fire-and-forget emails — don't await, don't let it block the response
+            sendOrderEmails(orderId).catch(e => console.error('❌ Email error:', e.message));
+          }
         }
+      } else {
+        console.warn(`⚠️ Order not found in DB: ${orderId}`);
       }
-      
-      // Update order status based on BENEFIT PAY response
-      let paymentStatus = 'PENDING';
-      let orderStatus = 'PENDING';
-      
-      if (status === 'APPROVED') {
-        paymentStatus = 'APPROVED';
-        orderStatus = 'CONFIRMED';
-        
-        // Send confirmation emails
-        await sendOrderEmails(orderId);
-      } else if (status === 'FAILED' || status === 'CANCELLED') {
-        paymentStatus = 'FAILED';
-        orderStatus = 'CANCELLED';
-      }
-      
-      await db.query(
-        'UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?',
-        [paymentStatus, orderStatus, orderId]
-      );
-      
-      console.log(`✅ BENEFIT PAY callback processed: ${orderId} -> ${paymentStatus}`);
-      
-      // For server-to-server callback, send 200 OK acknowledgement
-      if (isServerCallback) {
-        console.log('✅ Sending 200 OK acknowledgement to BENEFIT PAY server');
-        return res.status(200).send('OK');
-      }
-      
-      // For browser redirect, redirect to frontend callback page
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId}&status=${status}`;
-      console.log('🔗 Redirecting browser to:', redirectUrl);
-      res.redirect(redirectUrl);
-    } else {
-      console.error('❌ BENEFIT PAY callback processing failed:', responseResult.error);
-      
-      // For server callback, send 200 OK even on error to prevent retries
-      if (isServerCallback) {
-        console.log('⚠️ Sending 200 OK to BENEFIT PAY server despite error');
-        return res.status(200).send('ERROR');
-      }
-      
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?error=benefit_callback_failed&gateway=benefit`;
-      console.log('🔗 Redirecting browser to error URL:', errorUrl);
-      res.redirect(errorUrl);
+
+      const redirectUrl = `${frontendUrl}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${transactionId || ''}&status=${finalStatus}`;
+      console.log('🔗 Responding with REDIRECT:', redirectUrl);
+      return sendRedirect(redirectUrl);
+
+    } catch (dbError) {
+      console.error('❌ DB error during callback:', dbError.message);
+      // Still redirect — don't return HTML error
+      return sendRedirect(`${frontendUrl}/payment-callback?orderId=${orderId}&gateway=benefit&status=${status}&error=db_error`);
     }
-    
+
   } catch (error) {
-    console.error('❌ BENEFIT PAY callback error:', error.message);
-    
-    // Check if this is a server callback
-    const isServerCallback = req.headers['user-agent']?.includes('Java') || 
-                            req.headers['ecid-context'];
-    
-    // For server callback, send 200 OK to prevent retries
-    if (isServerCallback) {
-      console.log('⚠️ Sending 200 OK to BENEFIT PAY server despite exception');
-      return res.status(200).send('ERROR');
-    }
-    
-    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-callback?error=benefit_callback_error&gateway=benefit`;
-    console.log('🔗 Redirecting browser to error URL:', errorUrl);
-    res.redirect(errorUrl);
+    console.error('❌ BENEFIT PAY callback unexpected error:', error.message);
+    return sendRedirect(`${frontendUrl}/payment-callback?error=benefit_callback_error&gateway=benefit`);
   }
 };
 

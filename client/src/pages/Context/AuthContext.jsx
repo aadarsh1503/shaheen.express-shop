@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!!localStorage.getItem('token')); // only true if token exists
 
     const API_URL = '/api';
 

@@ -151,6 +151,7 @@ function AppContent() {
     emptyCart: emptyLocalCart,
   } = useCart();
   const [serverCartItems, setServerCartItems] = useState([]);
+  const [isCartLoading, setIsCartLoading] = useState(true);
   
   // loadingItemId is no longer needed for optimistic updates, so it's removed.
   
@@ -158,7 +159,10 @@ function AppContent() {
 
   // === SERVER CART LOGIC (remains the same) ===
   const fetchServerCart = async () => {
-    if (!token) return;
+    if (!token) {
+      setIsCartLoading(false);
+      return;
+    }
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const { data } = await axios.get('/api/cart', config);
@@ -166,6 +170,8 @@ function AppContent() {
     } catch (error) {
       console.error("Failed to fetch server cart:", error);
       setServerCartItems([]);
+    } finally {
+      setIsCartLoading(false);
     }
   };
   
@@ -374,7 +380,7 @@ function AppContent() {
           element={
             <UserProtectedRoute>
               {/* Note: CheckoutPage also needs calculations passed as props */}
-              <CheckoutPage cartItems={cartItems} subtotal={subtotal} onEmptyCart={handleEmptyCart} currency={currency} />
+              <CheckoutPage cartItems={cartItems} subtotal={subtotal} onEmptyCart={handleEmptyCart} currency={currency} isCartLoading={isCartLoading} />
             </UserProtectedRoute>
           }
         />

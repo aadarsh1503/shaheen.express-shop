@@ -28,7 +28,7 @@ const InputField = ({ id, label, placeholder, required = true, type = 'text', cl
 };
 
 // ---------------- CheckoutPage ----------------
-const CheckoutPage = ({ cartItems = [], onEmptyCart }) => {
+const CheckoutPage = ({ cartItems = [], onEmptyCart, isCartLoading = false }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [shippingOption, setShippingOption] = useState('delivery');
@@ -42,25 +42,16 @@ const CheckoutPage = ({ cartItems = [], onEmptyCart }) => {
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
   const [successCountdown, setSuccessCountdown] = useState(10);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
-  const [isLoadingCart, setIsLoadingCart] = useState(true);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchSavedAddresses();
     
-    // Get shipping option from sessionStorage (set by CartPage)
     const savedShippingOption = sessionStorage.getItem('shippingOption');
     if (savedShippingOption) {
       setShippingOption(savedShippingOption);
     }
-
-    // Mark cart as loaded after a brief delay to ensure props are received
-    const timer = setTimeout(() => {
-      setIsLoadingCart(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
   }, []);
 
   // Countdown timer for success modal - reset and start countdown
@@ -533,8 +524,8 @@ const CheckoutPage = ({ cartItems = [], onEmptyCart }) => {
     );
   }
 
-  // Show loading state while addresses or cart are being loaded
-  if (isLoadingAddresses || isLoadingCart) {
+  // Show loading state while cart or addresses are loading
+  if (isCartLoading || isLoadingAddresses) {
     return (
       <div className="bg-white min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
