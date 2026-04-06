@@ -37,7 +37,7 @@ const ShopFooter = () => {
       {/* Main Footer Section */}
       <div className="bg-[#EC2027] text-white font-thin">
         {/* Changed grid to 5 columns on large screens to accommodate all links */}
-        <div className="container mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+        <div className="container mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
           {/* Column 1: Logo & Tagline */}
           <div className="space-y-4 lg:col-span-1">
@@ -90,19 +90,19 @@ const ShopFooter = () => {
           </div>
 
           {/* Column 5: eFada Image */}
-          <div className="flex justify-start lg:justify-center">
+          {/* <div className="flex justify-start lg:justify-center">
             <a href="#" className="text-center">
               <img src="https://service.moic.gov.bh/newefadaapi/Images/image-w-2.png" alt="eFada Certified" className="h-20 w-auto" />
               <p className="text-xs mt-1">moic.gov.bh</p>
             </a>
-          </div>
+          </div> */}
 
         </div>
       </div>
 
       {/* Sub-Footer Section */}
       <div className="bg-[#ff2323] text-white font-thin">
-        <div className="container mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-4">
+        <div className="container mx-auto px-6 py- flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-4">
           
           {/* Copyright */}
           <p className="text-sm tracking-wide text-white font-semibold">
@@ -111,7 +111,7 @@ const ShopFooter = () => {
 
           {/* Payment Icons */}
           <div className="flex items-center space-x-2">
-            <img src="https://zoom.bh/wp-content/uploads/2023/10/payment-300x25-1.png" alt="Payment Methods" className="h-8"/>
+            <img src="https://res.cloudinary.com/ds1dt3qub/image/upload/v1775484980/images__4_-removebg-preview_noaxjd.png" alt="Payment Methods" className="h-24"/>
           </div>
           
           {/* Scroll to Top Button */}
