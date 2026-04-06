@@ -62,9 +62,9 @@ export const createBenefitPaySession = async (orderData) => {
     console.log('💱 Currency:', paymentCurrency);
     
     // Use appropriate URLs based on environment
-    // IMPORTANT: Callback URLs must point to BACKEND
-    const callbackUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-callback`;
-    const errorUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-callback`;
+    // responseURL and errorURL must point to the dedicated plain-text response endpoint
+    const callbackUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-response`;
+    const errorUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-response`;
     
     console.log('🔗 Callback URL:', callbackUrl);
     console.log('🔗 Error URL:', errorUrl);
@@ -335,25 +335,50 @@ export const handleBenefitPayResponse = async (responseData) => {
     // Determine payment status
     let paymentStatus = 'PENDING';
     
+    // Log all fields for debugging
+    console.log('📊 All parsed fields:', JSON.stringify(parsedData, null, 2));
+
     // Check for errors first
     if (ErrorText && ErrorText.trim() !== '') {
-      paymentStatus = 'FAILED';
-      console.log('❌ Payment FAILED - Error:', ErrorText);
+      // IPAY0400001 is a gateway acknowledgement error, not a payment failure
+      // If tranid or paymentid is present, the payment actually completed
+      if (ErrorText.includes('IPAY0400001') && (tranid || paymentid)) {
+        paymentStatus = 'APPROVED';
+        console.log('⚠️ IPAY0400001 ack error ignored — payment ID present, treating as APPROVED');
+      } else {
+        paymentStatus = 'FAILED';
+        console.log('❌ Payment FAILED - Error:', ErrorText);
+      }
     }
-    // Check result field
-    else if (result === 'CAPTURED' || result === 'SUCCESS' || responsecode === '00' || authRespCode === '00') {
+    // Check result field — Benefit Pay uses various success values
+    else if (
+      result === 'CAPTURED' || result === 'SUCCESS' || result === 'APPROVED' ||
+      responsecode === '00' || authRespCode === '00' ||
+      (parsedData.Result && (parsedData.Result === 'CAPTURED' || parsedData.Result === 'SUCCESS' || parsedData.Result === 'APPROVED'))
+    ) {
       paymentStatus = 'APPROVED';
       console.log('✅ Payment APPROVED');
-    } else if (result === 'FAILED' || result === 'DECLINED' || result === 'NOT CAPTURED') {
+    } else if (result === 'FAILED' || result === 'DECLINED' || result === 'NOT CAPTURED' ||
+               (parsedData.Result && (parsedData.Result === 'FAILED' || parsedData.Result === 'DECLINED'))) {
       paymentStatus = 'FAILED';
       console.log('❌ Payment FAILED');
-    } else if (result === 'CANCELED' || result === 'CANCELLED') {
+    } else if (result === 'CANCELED' || result === 'CANCELLED' ||
+               (parsedData.Result && (parsedData.Result === 'CANCELED' || parsedData.Result === 'CANCELLED'))) {
       paymentStatus = 'CANCELLED';
       console.log('⚠️ Payment CANCELLED');
-    } else if (!result || result === '') {
-      // Empty result with no error might mean user cancelled or didn't complete
-      paymentStatus = 'CANCELLED';
-      console.log('⚠️ Payment CANCELLED or not completed');
+    } else if (!result && !parsedData.Result) {
+      // No result field at all — check if there's a tranid/paymentid which indicates success
+      if (tranid || paymentid) {
+        paymentStatus = 'APPROVED';
+        console.log('✅ Payment APPROVED (inferred from tranid/paymentid presence)');
+      } else {
+        paymentStatus = 'CANCELLED';
+        console.log('⚠️ Payment CANCELLED or not completed (no result, no tranid)');
+      }
+    } else {
+      // result exists but unknown value — log it
+      console.log(`⚠️ Unknown result value: "${result || parsedData.Result}", defaulting to FAILED`);
+      paymentStatus = 'FAILED';
     }
     
     console.log('✅ ========== CALLBACK PROCESSED ==========\n');
@@ -395,9 +420,9 @@ export const createBenefitPayQRSession = async (orderData) => {
     console.log('💰 Payment Amount:', paymentAmount);
     console.log('💱 Currency:', paymentCurrency);
     
-    // Use same callback URLs as card payment
-    const callbackUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-callback`;
-    const errorUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-callback`;
+    // Use same callback URLs as card payment — dedicated response endpoint
+    const callbackUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-response`;
+    const errorUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/benefit-response`;
     
     console.log('🔗 Callback URL:', callbackUrl);
     console.log('🔗 Error URL:', errorUrl);

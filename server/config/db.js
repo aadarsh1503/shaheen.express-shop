@@ -11,16 +11,13 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  waitForConnections: true,  
-  connectionLimit: 10,      
+  waitForConnections: true,
+  connectionLimit: 10,
   queueLimit: 0,
-  // Keep-alive settings (supported)
-  keepAliveInitialDelay: 0,
+  connectTimeout: 30000,
+  // Keep-alive with a delay to avoid hammering the server on startup
   enableKeepAlive: true,
-  // Connection timeout (supported)
-  connectTimeout: 30000,      // 30 seconds to establish connection
-  // Query timeout (supported)
-  queryTimeout: 60000,        // 60 seconds for queries
+  keepAliveInitialDelay: 10000, // 10s before first keep-alive packet
 });
 
 // Test the pool connection

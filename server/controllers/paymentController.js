@@ -306,16 +306,25 @@ export const verifyPayment = async (req, res) => {
 };
 
 // BENEFIT PAY Response Handler (for callback URL)
-// IMPORTANT: This endpoint MUST return plain text "REDIRECT=someURL" only.
-// No HTML, no JSON. Benefit Pay will reject any other response format.
+// Benefit Pay calls this endpoint in two ways:
+// 1. Server-to-server POST (no browser) → must return plain text "REDIRECT=url"
+// 2. Browser form POST or GET redirect → must do HTTP 302 redirect
 export const handleBenefitPayCallback = async (req, res) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-  // Helper: send plain-text redirect response (the ONLY valid response format)
+  // Detect if this is a browser request (accepts HTML) vs server-to-server
+  const acceptHeader = req.headers['accept'] || '';
+  const isBrowser = req.method === 'GET' || acceptHeader.includes('text/html');
+
   const sendRedirect = (url) => {
+    // Strip any trailing slash from frontendUrl to avoid double slashes
+    const cleanUrl = url.replace(/([^:])\/\/+/g, '$1/');
+    if (isBrowser) {
+      return res.redirect(302, cleanUrl);
+    }
     res.set('Content-Type', 'text/plain');
     res.set('Cache-Control', 'no-cache, no-store');
-    return res.status(200).send(`REDIRECT=${url}`);
+    return res.status(200).send(`REDIRECT=${cleanUrl}`);
   };
 
   try {
@@ -406,13 +415,107 @@ export const handleBenefitPayCallback = async (req, res) => {
 export const handleBenefitPayWebhook = async (req, res) => {
   try {
     console.log('🔔 BENEFIT PAY Webhook received:', req.body);
-    
-    // Process webhook if BENEFIT PAY sends additional notifications
     res.status(200).json({ success: true, message: 'Webhook received' });
-    
   } catch (error) {
     console.error('❌ BENEFIT PAY webhook error:', error.message);
     res.status(500).json({ success: false, message: 'Webhook processing failed' });
+  }
+};
+
+// Dedicated BENEFIT PAY response endpoint (responseURL / errorURL)
+// Benefit Pay POSTs here after payment — must return ONLY plain text "REDIRECT=url"
+// If browser lands here directly, do a real HTTP 302 redirect instead
+export const handleBenefitPayResponseEndpoint = async (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const acceptHeader = req.headers['accept'] || '';
+  const isBrowser = req.method === 'GET' || acceptHeader.includes('text/html');
+
+  const sendRedirect = (url) => {
+    const cleanUrl = url.replace(/([^:])\/\/+/g, '$1/');
+    console.log('🔗 Sending REDIRECT:', cleanUrl, isBrowser ? '(browser 302)' : '(plain text)');
+    if (isBrowser) {
+      return res.redirect(302, cleanUrl);
+    }
+    res.set('Content-Type', 'text/plain');
+    res.set('Cache-Control', 'no-cache, no-store');
+    return res.status(200).send(`REDIRECT=${cleanUrl}`);
+  };
+
+  try {
+    const raw = Object.keys(req.body).length > 0 ? req.body : req.query;
+    console.log('🔔 BENEFIT PAY response endpoint hit (raw):', JSON.stringify(raw, null, 2));
+
+    // Decrypt trandata if present
+    if (raw.trandata) {
+      try {
+        const result = await handleBenefitPayResponse(raw);
+        if (result.success) {
+          const { orderId, transactionId, status } = result;
+          if (orderId) {
+            (async () => {
+              try {
+                const [rows] = await db.query('SELECT payment_status FROM orders WHERE order_id = ?', [orderId]);
+                if (!rows.length || rows[0].payment_status === 'APPROVED') return;
+                const paymentStatus = status === 'APPROVED' ? 'APPROVED' : 'FAILED';
+                const orderStatus = status === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED';
+                await db.query('UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?', [paymentStatus, orderStatus, orderId]);
+                if (status === 'APPROVED') sendOrderEmails(orderId).catch(e => console.error('❌ Email error:', e.message));
+              } catch (e) { console.error('❌ DB error:', e.message); }
+            })();
+          }
+          return sendRedirect(`${frontendUrl}/payment-callback?orderId=${orderId || ''}&gateway=benefit&transactionId=${transactionId || ''}&status=${status}`);
+        }
+      } catch (e) {
+        console.error('❌ Decryption failed:', e.message);
+      }
+    }
+
+    // Plain (unencrypted) fields
+    const orderId = raw.trackid || raw.trackId || '';
+    const tranid = raw.tranid || '';
+    const paymentid = raw.paymentid || '';
+    const errorText = raw.ErrorText || '';
+    const result = raw.result || '';
+    const responsecode = raw.responsecode || '';
+    const authRespCode = raw.authRespCode || '';
+
+    // IPAY0400001 is a gateway acknowledgement error — NOT a payment failure.
+    // If paymentid is present, the payment completed. Trust paymentid over this error.
+    const isAckError = errorText.includes('IPAY0400001');
+
+    let status = 'FAILED';
+    if (isAckError && paymentid) {
+      // Payment went through, gateway just had trouble with acknowledgement
+      status = 'APPROVED';
+      console.log('⚠️ IPAY0400001 ack error ignored — paymentid present, treating as APPROVED');
+    } else if (errorText && errorText.trim() !== '' && !isAckError) {
+      status = 'FAILED';
+    } else if (result === 'CAPTURED' || result === 'SUCCESS' || result === 'APPROVED' || responsecode === '00' || authRespCode === '00') {
+      status = 'APPROVED';
+    } else if (result === 'CANCELED' || result === 'CANCELLED') {
+      status = 'CANCELLED';
+    } else if (!result && (tranid || paymentid)) {
+      status = 'APPROVED';
+    }
+
+    if (orderId) {
+      (async () => {
+        try {
+          const [rows] = await db.query('SELECT payment_status FROM orders WHERE order_id = ?', [orderId]);
+          if (!rows.length || rows[0].payment_status === 'APPROVED') return;
+          const paymentStatus = status === 'APPROVED' ? 'APPROVED' : 'FAILED';
+          const orderStatus = status === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED';
+          await db.query('UPDATE orders SET payment_status = ?, order_status = ?, updated_at = NOW() WHERE order_id = ?', [paymentStatus, orderStatus, orderId]);
+          if (status === 'APPROVED') sendOrderEmails(orderId).catch(e => console.error('❌ Email error:', e.message));
+        } catch (e) { console.error('❌ DB error:', e.message); }
+      })();
+    }
+
+    return sendRedirect(`${frontendUrl}/payment-callback?orderId=${orderId}&gateway=benefit&transactionId=${tranid || paymentid}&status=${status}`);
+
+  } catch (error) {
+    console.error('❌ benefit-response error:', error.message);
+    return sendRedirect(`${frontendUrl}/payment-callback?error=server_error&gateway=benefit`);
   }
 };
 

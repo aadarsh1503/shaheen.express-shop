@@ -29,17 +29,118 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/addresses', addressRoutes);
 
 // --- Test & Fallback Routes ---
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("Backend server is running 🚀");
 });
 
-app.get("/api/test-db", async (req, res) => {
+// DB Health & Diagnostics endpoint
+app.get("/api/test-db", async (_req, res) => {
+  const results = {};
+  let hasError = false;
+
+  console.log('\n🔍 ========== DB DIAGNOSTICS START ==========');
+
+  // 1. Basic connectivity + server time
   try {
-    const [results] = await db.query("SELECT NOW() AS currentTime");
-    res.json({ message: "✅ Database connected!", time: results[0].currentTime });
+    const [[row]] = await db.query("SELECT NOW() AS currentTime, VERSION() AS version, DATABASE() AS dbName");
+    results.connection = { ok: true, time: row.currentTime, version: row.version, database: row.dbName };
+    console.log('✅ Connection OK | Time:', row.currentTime, '| Version:', row.version, '| DB:', row.dbName);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    results.connection = { ok: false, error: err.message };
+    console.error('❌ Connection FAILED:', err.message);
+    hasError = true;
   }
+
+  // 2. Pool status
+  try {
+    const pool = db.pool || db;
+    results.pool = {
+      connectionLimit: pool.config?.connectionLimit ?? pool.pool?.config?.connectionLimit ?? 'N/A',
+      queueLimit: pool.config?.queueLimit ?? pool.pool?.config?.queueLimit ?? 'N/A',
+    };
+    console.log('📊 Pool config:', results.pool);
+  } catch (err) {
+    results.pool = { error: err.message };
+  }
+
+  // 3. Check key tables exist
+  const tables = ['orders', 'order_items', 'users', 'shop_products', 'shop_categories', 'cart'];
+  results.tables = {};
+  for (const table of tables) {
+    try {
+      const [[{ count }]] = await db.query(`SELECT COUNT(*) AS count FROM \`${table}\``);
+      results.tables[table] = { ok: true, rows: count };
+      console.log(`✅ Table '${table}': ${count} rows`);
+    } catch (err) {
+      results.tables[table] = { ok: false, error: err.message };
+      console.error(`❌ Table '${table}' ERROR:`, err.message);
+      hasError = true;
+    }
+  }
+
+  // 4. MySQL process list (active queries)
+  try {
+    const [processes] = await db.query("SHOW PROCESSLIST");
+    results.processlist = processes.map(p => ({
+      id: p.Id, user: p.User, db: p.db,
+      command: p.Command, time: p.Time, state: p.State,
+      info: p.Info ? p.Info.substring(0, 100) : null
+    }));
+    console.log('📋 Active processes:', results.processlist.length);
+    results.processlist.forEach(p => console.log(`   [${p.id}] ${p.command} | ${p.time}s | ${p.state || '-'} | ${p.info || '-'}`));
+  } catch (err) {
+    results.processlist = { error: err.message };
+    console.warn('⚠️ PROCESSLIST not available:', err.message);
+  }
+
+  // 5. MySQL error log variables (shows log file path)
+  try {
+    const [vars] = await db.query("SHOW VARIABLES LIKE 'log_error'");
+    results.errorLogPath = vars[0]?.Value || 'not set';
+    console.log('📁 MySQL error log path:', results.errorLogPath);
+  } catch (err) {
+    results.errorLogPath = { error: err.message };
+  }
+
+  // 6. InnoDB status (crash/recovery info)
+  try {
+    const [[innoRow]] = await db.query("SHOW ENGINE INNODB STATUS");
+    const status = innoRow?.Status || '';
+    // Extract just the key sections to avoid huge output
+    const sections = ['TRANSACTIONS', 'FILE I/O', 'BUFFER POOL', 'LOG', 'LATEST DETECTED DEADLOCK'];
+    results.innodb = {};
+    sections.forEach(section => {
+      const idx = status.indexOf(section);
+      if (idx !== -1) {
+        results.innodb[section] = status.substring(idx, idx + 300).split('\n').slice(0, 5).join(' | ');
+      }
+    });
+    console.log('🔧 InnoDB status sections captured:', Object.keys(results.innodb));
+  } catch (err) {
+    results.innodb = { error: err.message };
+    console.warn('⚠️ InnoDB status not available:', err.message);
+  }
+
+  // 7. Recent orders (quick sanity check)
+  try {
+    const [recentOrders] = await db.query(
+      "SELECT order_id, payment_status, order_status, created_at FROM orders ORDER BY created_at DESC LIMIT 5"
+    );
+    results.recentOrders = recentOrders;
+    console.log('🛒 Recent orders:', recentOrders.length);
+    recentOrders.forEach(o => console.log(`   ${o.order_id} | ${o.payment_status} | ${o.order_status} | ${o.created_at}`));
+  } catch (err) {
+    results.recentOrders = { error: err.message };
+    console.error('❌ Recent orders query failed:', err.message);
+    hasError = true;
+  }
+
+  console.log('🔍 ========== DB DIAGNOSTICS END ==========\n');
+
+  res.status(hasError ? 500 : 200).json({
+    status: hasError ? '⚠️ Issues detected' : '✅ All checks passed',
+    ...results
+  });
 });
 
 // Global error handler — must return plain text for benefit-callback routes

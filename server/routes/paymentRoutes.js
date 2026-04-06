@@ -4,7 +4,8 @@ import {
   verifyPayment, 
   getUserOrders, 
   getOrderDetails, 
-  handleBenefitPayCallback, 
+  handleBenefitPayCallback,
+  handleBenefitPayResponseEndpoint,
   handleBenefitPayWebhook,
   createBenefitPayQR,
   checkPaymentStatus
@@ -29,6 +30,11 @@ router.get('/check-status/:orderId', checkPaymentStatus);
 // BENEFIT PAY callback endpoint (accepts both GET and POST from BENEFIT PAY gateway)
 router.get('/benefit-callback', handleBenefitPayCallback);
 router.post('/benefit-callback', handleBenefitPayCallback);
+
+// Dedicated BENEFIT PAY response URL — must return ONLY "REDIRECT=url", nothing else
+// This is what goes in responseURL and errorURL fields when creating the session
+router.post('/benefit-response', handleBenefitPayResponseEndpoint);
+router.get('/benefit-response', handleBenefitPayResponseEndpoint);
 
 // BENEFIT PAY webhook endpoint (POST request for notifications)
 router.post('/benefit-webhook', handleBenefitPayWebhook);
