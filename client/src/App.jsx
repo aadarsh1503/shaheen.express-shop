@@ -281,7 +281,7 @@ function AppContent() {
             return originalCart;
         }
 
-        // Send API request in the background with the validated quantity
+        // Send API request in the background with the validated quantity ok..
         const config = { headers: { 'Authorization': `Bearer ${token}` } };
         axios.put(`/api/cart/${itemId}`, { quantity: newQuantity }, config)
           .catch(error => {
