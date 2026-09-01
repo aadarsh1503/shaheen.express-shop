@@ -531,7 +531,6 @@ useEffect(() => {
                 {vehicle.icon}
               </div>
               <p className="text-center ">{vehicle.label}</p>
-              <p className="text-center ">{vehicle.charge}</p>
             </div>
           ))}
         </div>

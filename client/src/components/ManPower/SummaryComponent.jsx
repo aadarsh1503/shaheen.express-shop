@@ -17,16 +17,7 @@ const SummaryComponent = () => {
     );
   }
 
-  const perKmCharge = 10; // Distance charge per kilometer
-  const distance = submittedData.distance || 0; // Default to 0 if distance is undefined
-  const distanceCharge = distance * perKmCharge;
-
-  // Handle missing or undefined selectedVehicle and its charge
-
-  const totalCharge = submittedData.selectedVehicle.charge + distanceCharge; // Add the charges as numbers
-
-  // Ensure totalCharge is a number
-  const formattedTotalCharge = !isNaN(totalCharge) ? totalCharge.toFixed(2) : "0.00"; // Format to 2 decimal places
+  const distance = submittedData.distance || 0;
 
   return (
     <div className="flex items-center justify-center h-[900px] bg-gray-100">
@@ -69,24 +60,10 @@ const SummaryComponent = () => {
               </td>
             </tr>
             <tr className="border-b">
-              <th className="p-4 text-gray-600 font-medium">Vehicle Charge</th>
-              <td className="p-4 text-gray-800">
-                {submittedData.selectedVehicle.charge} BHD
-              </td>
-            </tr>
-            <tr className="border-b">
               <th className="p-4 text-gray-600 font-medium">Distance</th>
               <td className="p-4 text-gray-800">
                 {distance.toFixed(2)} km
               </td>
-            </tr>
-            <tr className="border-b">
-              <th className="p-4 text-gray-600 font-medium">Distance Charge</th>
-              <td className="p-4 text-gray-800"> {distanceCharge.toFixed(2)} BHD</td>
-            </tr>
-            <tr>
-              <th className="p-4 text-gray-600 font-bold">Total Charge</th>
-              <td className="p-4 text-gray-800 font-bold">{formattedTotalCharge} BHD</td>
             </tr>
           </tbody>
         </table>
